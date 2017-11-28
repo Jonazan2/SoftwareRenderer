@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	SDL_Window *window = SDL_CreateWindow("PatBoy", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+	SDL_Window *window = SDL_CreateWindow("Software Renderer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 		SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 	SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
