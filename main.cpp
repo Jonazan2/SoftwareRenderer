@@ -1,4 +1,6 @@
-#include <iostream>
+#include <stdlib.h>
+#include <algorithm>
+#include <assert.h>
 
 #define SDL_MAIN_HANDLED 
 #include <SDL.h>
@@ -27,6 +29,7 @@ static const RGBA PINK = { 0xFF, 0xAA, 0xBB, 0xFF };
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 void plotPixel(int x, int y, RGBA colour);
+void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
 
 int main(int argc, char** argv) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
@@ -62,15 +65,10 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		// horizontal line in the middle
-		for (int i = 0; i < SCREEN_WIDTH; i++) {
-			plotPixel(i, SCREEN_HEIGHT / 2, BLACK);
-		}
-
-		// vertical line in the middle
-		for (int i = 0; i < SCREEN_HEIGHT; i++) {
-			plotPixel(SCREEN_WIDTH / 2, i, BLACK);
-		}
+		drawLine(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLACK);
+		drawLine(0, SCREEN_HEIGHT/ 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, BLACK);
+		drawLine(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, BLACK);
+		drawLine(0, SCREEN_HEIGHT - 1, SCREEN_WIDTH - 1, 0, BLACK);
 
 		SDL_UpdateTexture(texture, NULL, frameBuffer, SCREEN_WIDTH * sizeof(byte) * 4);
 		SDL_RenderClear(renderer);
@@ -82,5 +80,40 @@ int main(int argc, char** argv) {
 }
 
 void plotPixel(int x, int y, RGBA colour) {
+	assert(x < SCREEN_WIDTH && y < SCREEN_HEIGHT);
 	frameBuffer[y][x] = colour;
+}
+
+void drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
+	const bool steep = (fabs(y1 - y0) > fabs(x1 - x0));
+
+	if (steep) {
+		std::swap(x0, y0);
+		std::swap(x1, y1);
+	}
+
+	if (x0 > x1) {
+		std::swap(x0, x1);
+		std::swap(y0, y1);
+	}
+
+	const float dx = x1 - x0;
+	const float dy = fabs(y1 - y0);
+	float error = dx / 2.0f;
+
+	const int ystep = (y0 < y1) ? 1 : -1;
+
+	for (int x = x0, y = y0; x < x1; x++) {
+		if (steep) {
+			plotPixel(y, x, colour);
+		} else {
+			plotPixel(x, y, colour);
+		}
+
+		error -= dy;
+		if (error < 0) {
+			y += ystep;
+			error += dx;
+		}
+	}
 }
