@@ -5,26 +5,12 @@
 #define SDL_MAIN_HANDLED 
 #include <SDL.h>
 
+#include "Types.h"
+#include "Mesh.h"
+#include "Vector2.h"
+
 static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
-
-using byte = unsigned char;
-
-struct RGBA {
-	byte red;
-	byte green;
-	byte blue;
-	byte alpha;
-
-	bool isEqual(RGBA other) {
-		return red == other.red && green == other.green
-			&& blue == other.blue && alpha == other.alpha;
-	}
-};
-
-
-static const RGBA BLACK = { 0x00, 0x00, 0x00, 0xFF };
-static const RGBA PINK = { 0xFF, 0xAA, 0xBB, 0xFF };
 
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
@@ -36,17 +22,21 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	SDL_Window *window = SDL_CreateWindow("Software Renderer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-		SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+	// Load mesh from OBJ Wavefront file
+	Mesh mesh;
+	mesh.loadObjFromFile("shotgun.obj");
+
+	// Create SDL window and rendered for our frame buffer
+	SDL_Window *window = SDL_CreateWindow("Software Renderer", SDL_WINDOWPOS_UNDEFINED, 
+		SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 	SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
 		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-
-	// init frame buffer to PINK
+	// Init frame buffer to BLACK
 	for (int i = 0; i < SCREEN_WIDTH; i++) {
 		for (int j = 0; j < SCREEN_HEIGHT; j++) {
-			frameBuffer[j][i] = PINK;
+			frameBuffer[j][i] = BLACK;
 		}
 	}
 
@@ -65,10 +55,21 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		drawLine(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, BLACK);
-		drawLine(0, SCREEN_HEIGHT/ 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, BLACK);
-		drawLine(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, BLACK);
-		drawLine(0, SCREEN_HEIGHT - 1, SCREEN_WIDTH - 1, 0, BLACK);
+		// draw model
+		for (int i = 0; i<mesh.getFaces().size(); i++) {
+
+			const FaceVector faces = mesh.getFaces()[i];
+			for (int j = 0; j<3; j++) {
+				Vector3f v0 = mesh.getVertex(faces[j].x);
+				Vector3f v1 = mesh.getVertex(faces[(j + 1) % 3].x);
+
+				int x0 = ((v0.x + 1.)* (SCREEN_WIDTH - 1)) / 2.;
+				int y0 = ((v0.y + 1.)* (SCREEN_HEIGHT - 1)) / 2.;
+				int x1 = ((v1.x + 1.)* (SCREEN_WIDTH - 1)) / 2.;
+				int y1 = ((v1.y + 1.)* (SCREEN_HEIGHT - 1)) / 2.;
+				drawLine(x0, y0, x1, y1, WHITE);
+			}
+		}
 
 		SDL_UpdateTexture(texture, NULL, frameBuffer, SCREEN_WIDTH * sizeof(byte) * 4);
 		SDL_RenderClear(renderer);
@@ -81,7 +82,7 @@ int main(int argc, char** argv) {
 
 void plotPixel(int x, int y, RGBA colour) {
 	assert(x < SCREEN_WIDTH && y < SCREEN_HEIGHT);
-	frameBuffer[y][x] = colour;
+	frameBuffer[SCREEN_HEIGHT - y][x] = colour;
 }
 
 void drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
