@@ -82,6 +82,10 @@ int Mesh::getNormalsCount() const {
 	return normals.size();
 }
 
+int Mesh::getFacesCount() const {
+	return faces.size();
+}
+
 const std::vector<FaceVector>& Mesh::getFaces() const {
 	return faces;
 }
@@ -99,4 +103,9 @@ const Vector3f& Mesh::getVertex(size_t index) const {
 const Vector3f& Mesh::getNormal(size_t index) const {
 	assert(index < normals.size());
 	return normals[index];
+}
+
+const FaceVector& Mesh::getFace(size_t index) const {
+	assert(index < faces.size());
+	return faces[index];
 }

@@ -16,12 +16,13 @@ public:
 	int getVerticesCount() const;
 	int getTextureCoordinatesCount() const;
 	int getNormalsCount() const;
+	int getFacesCount() const;
 	const std::vector<FaceVector>& getFaces() const;
 
 	const Vector3f& getVertex(size_t index) const;
 	const Vector3f& getTextureCoordinate(size_t index) const;
 	const Vector3f& getNormal(size_t index) const;
-
+	const FaceVector& getFace(size_t index) const;
 
 private:
 	std::vector<Vector3f> vertices;

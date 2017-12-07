@@ -81,6 +81,25 @@ public:
 	Vector3 getNormalizeVector() const {
 		return *this / magnitude()
 	}
+
+	Vector3 cross(const Vector3 &other) const {
+		return Vector3(y * other.z - z*other.y,
+			z*other.x - x*other.z,
+			x*other.y - y*other.x);
+	}
+
+	Vector3& operator^=(const Vector3 &other) {
+		x = y * other.z - z*other.y;
+		y = z*other.x - x*other.z;
+		z = x*other.y - y*other.x;
+		return *(this);
+	}
+
+	Vector3 operator^(const Vector3 &other) {
+		return Vector3(y * other.z - z*other.y,
+			z*other.x - x*other.z,
+			x*other.y - y*other.x);
+	}
 };
 
 using Vector3f = Vector3<float>;
