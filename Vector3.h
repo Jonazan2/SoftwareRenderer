@@ -48,7 +48,7 @@ public:
 	}
 
 	Vector3 operator-(const Vector3 &other) const {
-		return (x - other.x, y - other.y, z - other.z);
+		return Vector3(x - other.x, y - other.y, z - other.z);
 	}
 
 	Vector3& operator-=(const Vector3 &other) {
@@ -74,7 +74,7 @@ public:
 	}
 
 	Vector3& normalize() {
-		*this = *this / magnitude()
+		*this = *this / magnitude();
 		return *this;
 	}
 
@@ -99,6 +99,10 @@ public:
 		return Vector3(y * other.z - z*other.y,
 			z*other.x - x*other.z,
 			x*other.y - y*other.x);
+	}
+
+	T dot(const Vector3 &other) const {
+		return (x * other.x) + (y * other.y) + (z * other.z);
 	}
 };
 

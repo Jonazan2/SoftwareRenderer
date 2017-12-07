@@ -11,11 +11,13 @@
 static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
 
+static Vector3f LIGHT_DIRECTION(0., 0., -1.);
+
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 void plotPixel(int x, int y, RGBA colour);
 void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
-void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, const RGBA& colour);
+void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, const RGBA &colour);
 bool isDegenerate(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2);
 BoundingBox calculateBoundingBoxOfTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2);
 bool IsPointInsideTriangle(const Vector2i &point, const Vector2i &v0, const Vector2i &v1, const Vector2i &v2);
@@ -59,16 +61,23 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		// draw faces (without culling for now)
+		// draw faces taking into account the normals
 		for (int i = 0; i < mesh.getFacesCount(); i++) {
 			const FaceVector& face = mesh.getFace(i);
 			Vector2i screenCoordinates[3];
+			Vector3f vertexCoordinates[3];
 			for (int j = 0; j < 3; j++) {
-				const Vector3f vertexCoordinate = mesh.getVertex(face[j].x);
-				screenCoordinates[j] = Vector2i((vertexCoordinate.x + 1.)*SCREEN_WIDTH / 2., (vertexCoordinate.y + 1.)*SCREEN_HEIGHT / 2.);
+				vertexCoordinates[j] = mesh.getVertex(face[j].x);
+				screenCoordinates[j] = Vector2i((vertexCoordinates[j].x + 1.)*SCREEN_WIDTH / 2., (vertexCoordinates[j].y + 1.)*SCREEN_HEIGHT / 2.);
 			}
-			RGBA random = { rand() % 0xFF, rand() % 0xFF , rand() % 0xFF , (byte)0xFF };
-			drawTriangle(screenCoordinates[0], screenCoordinates[1], screenCoordinates[2], random);
+
+			Vector3f n = (vertexCoordinates[2] - vertexCoordinates[0]) ^ (vertexCoordinates[1] - vertexCoordinates[0]);
+			n.normalize();
+			float intensity = n.dot(LIGHT_DIRECTION);
+			if (intensity > 0) {
+				RGBA colour = { intensity * 255, intensity * 255, intensity * 255, 255 };
+				drawTriangle(screenCoordinates[0], screenCoordinates[1], screenCoordinates[2], colour);
+			}
 		}
 
 		SDL_UpdateTexture(texture, NULL, frameBuffer, SCREEN_WIDTH * sizeof(byte) * 4);
@@ -119,7 +128,7 @@ void drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
 	}
 }
 
-void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, const RGBA& colour) {
+void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, const RGBA &colour) {
 	if (isDegenerate(v0, v1, v2)) {
 		return;
 	}
