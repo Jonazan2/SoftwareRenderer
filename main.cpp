@@ -11,16 +11,19 @@
 static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
 
-static Vector3f LIGHT_DIRECTION(0., 0., -1.);
+static const Vector3f LIGHT_DIRECTION(0.0f, 0.0f, -1.0f);
 
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 void plotPixel(int x, int y, RGBA colour);
 void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
-void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, const RGBA &colour);
-bool isDegenerate(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2);
-BoundingBox calculateBoundingBoxOfTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2);
-bool IsPointInsideTriangle(const Vector2i &point, const Vector2i &v0, const Vector2i &v1, const Vector2i &v2);
+void drawTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const RGBA &colour);
+bool isDegenerate(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
+BoundingBox calculateBoundingBoxOfTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
+bool isPointInsideTriangle(const Vector3f &barycentricCoordinates);
+Vector3f calculateBarycentricCoordinates(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
+bool passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &barycentricCoordinates);
 void drawBoundingBox(const BoundingBox &box, const RGBA &colour);
 
 int main(int argc, char** argv) {
@@ -39,10 +42,11 @@ int main(int argc, char** argv) {
 	SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
 		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	// Init frame buffer to BLACK
+	// Init frame buffer to BLACK and zBuffer to the largest float possible ( 0 will be closest to camera )
 	for (int i = 0; i < SCREEN_WIDTH; i++) {
 		for (int j = 0; j < SCREEN_HEIGHT; j++) {
 			frameBuffer[j][i] = BLACK;
+			zBuffer[j][i] = std::numeric_limits<float>::max();
 		}
 	}
 
@@ -61,16 +65,17 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		// draw faces taking into account the normals
+		// draw faces of the mesh
 		for (int i = 0; i < mesh.getFacesCount(); i++) {
 			const FaceVector& face = mesh.getFace(i);
-			Vector2i screenCoordinates[3];
+			Vector3f screenCoordinates[3];
 			Vector3f vertexCoordinates[3];
 			for (int j = 0; j < 3; j++) {
 				vertexCoordinates[j] = mesh.getVertex(face[j].x);
-				screenCoordinates[j] = Vector2i((vertexCoordinates[j].x + 1.)*SCREEN_WIDTH / 2., (vertexCoordinates[j].y + 1.)*SCREEN_HEIGHT / 2.);
+				screenCoordinates[j] = Vector3f((vertexCoordinates[j].x + 1.)*SCREEN_WIDTH / 2., (vertexCoordinates[j].y + 1.)*SCREEN_HEIGHT / 2., 0.f);
 			}
 
+			// calculate face normals and check for back face culling
 			Vector3f n = (vertexCoordinates[2] - vertexCoordinates[0]) ^ (vertexCoordinates[1] - vertexCoordinates[0]);
 			n.normalize();
 			float intensity = n.dot(LIGHT_DIRECTION);
@@ -128,7 +133,7 @@ void drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
 	}
 }
 
-void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, const RGBA &colour) {
+void drawTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const RGBA &colour) {
 	if (isDegenerate(v0, v1, v2)) {
 		return;
 	}
@@ -136,21 +141,23 @@ void drawTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2, co
 	BoundingBox box = calculateBoundingBoxOfTriangle(v0, v1, v2);
 	for (int x = box.min.x; x <= box.max.x; x++) {
 		for (int y = box.min.y; y <= box.max.y; y++) {
-			if (IsPointInsideTriangle({ x, y }, v0, v1, v2)) {
+			Vector2i point = { x, y };
+			Vector3f barycentric = calculateBarycentricCoordinates(point, v0, v1, v2);
+			if (isPointInsideTriangle(barycentric) && passZBufferTest(point, v0, v1, v2, barycentric)) {
 				plotPixel(x, y, colour);
 			}
 		}
 	}
 }
 
-bool isDegenerate(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2) {
+bool isDegenerate(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2) {
 	return v0.y == v1.y && v0.y == v2.y;
 }
 
-BoundingBox calculateBoundingBoxOfTriangle(const Vector2i &v0, const Vector2i &v1, const Vector2i &v2) {
+BoundingBox calculateBoundingBoxOfTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2) {
 	BoundingBox box;
-	box.min = Vector2i(std::min({ v0.x, v1.x, v2.x, SCREEN_WIDTH - 1 }),
-		std::min({ v0.y, v1.y, v2.y, SCREEN_HEIGHT - 1 }));
+	box.min = Vector2i(std::min({ v0.x, v1.x, v2.x, static_cast<float>(SCREEN_WIDTH - 1) }),
+		std::min({ v0.y, v1.y, v2.y, static_cast<float>(SCREEN_HEIGHT - 1) }));
 
 	box.max = Vector2i(std::max({ v0.x, v1.x, v2.x}),
 		std::max({ v0.y, v1.y, v2.y }));
@@ -161,17 +168,27 @@ BoundingBox calculateBoundingBoxOfTriangle(const Vector2i &v0, const Vector2i &v
 	return box;
 }
 
-bool IsPointInsideTriangle(const Vector2i &point, const Vector2i &v0, const Vector2i &v1, const Vector2i &v2) {
+Vector3f calculateBarycentricCoordinates(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2) {
 	Vector3f a(v2.x - v0.x, v1.x - v0.x, v0.x - point.x);
 	Vector3f b(v2.y - v0.y, v1.y - v0.y, v0.y - point.y);
 	Vector3f u = a.cross(b);
-	if (std::abs(u.z) < 1) {
+
+	return Vector3f(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+}
+
+bool isPointInsideTriangle(const Vector3f &barycentricCoordinates) {
+	return barycentricCoordinates.x >= 0 && barycentricCoordinates.y >= 0 && barycentricCoordinates.z >= 0;
+}
+
+bool passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &barycentricCoordinates) {
+	float zValue = v0.z *barycentricCoordinates.x + v1.z * barycentricCoordinates.y + v1.z * barycentricCoordinates.z;
+
+	if (zBuffer[point.y][point.x] > zValue) {
+		zBuffer[point.y][point.x] = zValue;
+		return true;
+	} else {
 		return false;
 	}
-
-	// P = (1- u - v)v0 + uv1 + vv2
-	Vector3f barycentric(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
-	return barycentric.x >= 0 && barycentric.y >= 0 && barycentric.z >= 0;
 }
 
 void drawBoundingBox(const BoundingBox &box, const RGBA &colour) {
