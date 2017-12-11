@@ -59,7 +59,7 @@ public:
 	}
 
 	Vector3 operator+(const Vector3 &other) const {
-		return (x + other.x, y + other.y, z + other.z);
+		return { x + other.x, y + other.y, z + other.z };
 	}
 
 	Vector3& operator+=(const Vector3 &other) {
@@ -79,7 +79,7 @@ public:
 	}
 
 	Vector3 getNormalizeVector() const {
-		return *this / magnitude()
+		return *this / magnitude();
 	}
 
 	Vector3 cross(const Vector3 &other) const {

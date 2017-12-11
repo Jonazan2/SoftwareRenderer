@@ -45,7 +45,7 @@ public:
 	}
 
 	Vector2 operator-(const Vector2 &other) const {
-		return (x - other.x, y - other.y);
+		return { x - other.x, y - other.y };
 	}
 
 	Vector2& operator-=(const Vector2 &other) {
@@ -75,6 +75,10 @@ public:
 
 	Vector2 getNormalizeVector() const {
 		return *this / magnitude()
+	}
+
+	T dot(const Vector2 &other) const {
+		return (x * other.x) + (y * other.y);
 	}
 };
 

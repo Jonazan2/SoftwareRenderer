@@ -4,6 +4,9 @@
 #include <sstream>
 #include <iostream>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 Mesh::Mesh() {
 	vertices.clear();
 	textureCoordinates.clear();
@@ -11,6 +14,13 @@ Mesh::Mesh() {
 	faces.clear();
 	spaceVertices.clear();
 }
+
+Mesh::~Mesh() {
+	if (texture.data != nullptr) {
+		stbi_image_free(texture.data);
+	}
+}
+
 
 void Mesh::loadObjFromFile(const std::string& path) {
 	std::ifstream file(path, std::ifstream::in);
@@ -70,6 +80,27 @@ void Mesh::loadObjFromFile(const std::string& path) {
 	file.close();
 }
 
+void Mesh::loadTexture(const std::string& path) {
+	int req_format = STBI_rgb_alpha;
+	int width, height, orig_format;
+	byte *textureData = stbi_load(path.c_str(), &width, &height, &orig_format, req_format);
+	assert(textureData != nullptr && req_format == orig_format);
+
+	texture = { width, height, textureData };
+}
+
+RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) {
+	assert(texture.data != nullptr);
+	// we must take into account the pitch: 4, and rotate vertically to match the origin of SDL
+	int index = ((textureCoordinate.x * 4) + ((texture.height - textureCoordinate.y) * texture.height * 4));
+	RGBA colour;
+	colour.red = texture.data[index];
+	colour.green = texture.data[index + 1];
+	colour.blue = texture.data[index + 2];
+	colour.alpha = texture.data[index + 3];
+	return colour;
+}
+
 int Mesh::getVerticesCount() const {
 	return vertices.size();
 }
@@ -90,9 +121,12 @@ const std::vector<FaceVector>& Mesh::getFaces() const {
 	return faces;
 }
 
-const Vector3f& Mesh::getTextureCoordinate(size_t index) const {
+Vector3f Mesh::getTextureCoordinate(size_t index) const {
 	assert(index < textureCoordinates.size());
-	return textureCoordinates[index];
+	Vector3f uv = textureCoordinates[index];
+	uv.x = uv.x * texture.width;
+	uv.y = uv.y * texture.height;
+	return uv;
 }
 
 const Vector3f& Mesh::getVertex(size_t index) const {
