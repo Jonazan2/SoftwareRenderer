@@ -11,7 +11,7 @@
 static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
 
-static const Vector3f LIGHT_DIRECTION(0.0f, 0.0f, -1.0f);
+static const Vector3f LIGHT_DIRECTION(0.0f, 0.0f, -0.2f);
 
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -19,8 +19,10 @@ float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 Vector3f world2screen(Vector3f v);
 void plotPixel(int x, int y, RGBA colour);
 void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
-void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], float lightIntensity, Mesh &mesh);
+void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Mesh &mesh);
 Vector2i interpolateTextureCoordinates(const Vector3f &barycentric, const Vector3f &uv0, const Vector3f &uv1, const Vector3f &uv2);
+float applyGouraudInterpolation(const Vector3f &barycentric, float intensityN0, float intensityN1, float intensityN2);
+
 bool isDegenerate(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
 BoundingBox calculateBoundingBoxOfTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
 bool isPointInsideTriangle(const Vector3f &barycentricCoordinates);
@@ -36,8 +38,8 @@ int main(int argc, char** argv) {
 
 	// Load mesh from OBJ Wavefront file
 	Mesh mesh;
-	mesh.loadObjFromFile("diablo3.obj");
-	mesh.loadTexture("diablo3_diffuse.png");
+	mesh.loadObjFromFile("head.obj");
+	mesh.loadTexture("head_diffuse.png");
 
 	// Create SDL window and rendered for our frame buffer
 	SDL_Window *window = SDL_CreateWindow("Software Renderer", SDL_WINDOWPOS_UNDEFINED, 
@@ -74,19 +76,20 @@ int main(int argc, char** argv) {
 			const FaceVector& face = mesh.getFace(i);
 			Vector3f screenCoordinates[3];
 			Vector3f texureCoordinates[3];
+			Vector3f normals[3];
 			Vector3f vertexCoordinates[3];
 			for (int j = 0; j < 3; j++) {
 				vertexCoordinates[j] = mesh.getVertex(face[j].x);
 				texureCoordinates[j] = mesh.getTextureCoordinate(face[j].y);
+				normals[j] = mesh.getNormal(face[j].z).getNormalizeVector();
 				screenCoordinates[j] = world2screen(vertexCoordinates[j]);
 			}
 
 			// calculate face normals and check for back face culling
 			Vector3f n = (vertexCoordinates[2] - vertexCoordinates[0]) ^ (vertexCoordinates[1] - vertexCoordinates[0]);
 			n.normalize();
-			float intensity = n.dot(LIGHT_DIRECTION);
-			if (intensity > 0.0f) {
-				drawTriangle(screenCoordinates, texureCoordinates, intensity, mesh);
+			if (n.dot(LIGHT_DIRECTION) > 0.0f) {
+				drawTriangle(screenCoordinates, texureCoordinates, normals, mesh);
 			}
 		}
 
@@ -142,11 +145,19 @@ void drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
 	}
 }
 
-void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], float lightIntensity, Mesh &mesh) {
+void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Mesh &mesh) {
+	// check if triangle is degenerate to discard it
 	if (isDegenerate(vertices[0], vertices[1], vertices[2])) {
 		return;
 	}
 
+	// pre calculculate light intensity at normals
+	float intensities[3];
+	for (int i = 0; i < 3; i++) {
+		intensities[i] = normals[i].dot(LIGHT_DIRECTION);
+	}
+
+	// draw triangle
 	BoundingBox box = calculateBoundingBoxOfTriangle(vertices[0], vertices[1], vertices[2]);
 	for (int x = box.min.x; x <= box.max.x; x++) {
 		for (int y = box.min.y; y <= box.max.y; y++) {
@@ -155,6 +166,7 @@ void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], float lightIntensity, M
 			if (isPointInsideTriangle(barycentric) && passZBufferTest(point, vertices[0], vertices[1], vertices[2], barycentric)) {
 				Vector2i uv = interpolateTextureCoordinates(barycentric, uvs[0], uvs[1], uvs[2]);
 				RGBA colour = mesh.getTextureColor(uv);
+				float lightIntensity = applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
 				applyLightIntensityToColour(lightIntensity, colour);
 				plotPixel(x, y, colour);
 			}
@@ -210,6 +222,10 @@ Vector2i interpolateTextureCoordinates(const Vector3f &barycentric, const Vector
 	uvInterpolated.x = uv0.x *barycentric.x + uv1.x * barycentric.y + uv2.x * barycentric.z;
 	uvInterpolated.y = uv0.y *barycentric.x + uv1.y * barycentric.y + uv2.y * barycentric.z;
 	return uvInterpolated;
+}
+
+float applyGouraudInterpolation(const Vector3f &barycentric, float intensityN0, float intensityN1, float intensityN2) {
+	return 1.0f - (intensityN0 *barycentric.x + intensityN1 * barycentric.y + intensityN2 * barycentric.z);
 }
 
 void applyLightIntensityToColour(float intensity, RGBA &colour) {
