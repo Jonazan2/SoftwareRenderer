@@ -1,5 +1,5 @@
 # SoftwareRenderer
-Software renderer developed in C++ from scratch.
+Software renderer developed in C++ from scratch. The following images show the result after implementing several features.
 
 # Wireframe
 <p align="center">
@@ -19,6 +19,11 @@ Software renderer developed in C++ from scratch.
 # UV mapping
 <p align="center">
   <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_diablo_diffuse.png" alt="zBuffer"/>
+</p>
+
+# Gouraud interpolation
+<p align="center">
+  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_diablo_gouraud.png" alt="gouraud"/>
 </p>
 
 # Documentation
