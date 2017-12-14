@@ -11,7 +11,7 @@
 static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
 
-static const Vector3f LIGHT_DIRECTION(0.0f, 0.0f, -0.2f);
+static const Vector3f LIGHT_DIRECTION(0.0f, 0.0f, -1.0f);
 
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -81,14 +81,15 @@ int main(int argc, char** argv) {
 			for (int j = 0; j < 3; j++) {
 				vertexCoordinates[j] = mesh.getVertex(face[j].x);
 				texureCoordinates[j] = mesh.getTextureCoordinate(face[j].y);
-				normals[j] = mesh.getNormal(face[j].z).getNormalizeVector();
+				normals[j] = mesh.getNormal(face[j].z);
+				normals[j].normalize();
 				screenCoordinates[j] = world2screen(vertexCoordinates[j]);
 			}
 
 			// calculate face normals and check for back face culling
-			Vector3f n = (vertexCoordinates[2] - vertexCoordinates[0]) ^ (vertexCoordinates[1] - vertexCoordinates[0]);
-			n.normalize();
-			if (n.dot(LIGHT_DIRECTION) > 0.0f) {
+			Vector3f faceNormal = (vertexCoordinates[2] - vertexCoordinates[0]) ^ (vertexCoordinates[1] - vertexCoordinates[0]);
+			faceNormal.normalize();
+			if (faceNormal.dot(LIGHT_DIRECTION) > 0.0f) {
 				drawTriangle(screenCoordinates, texureCoordinates, normals, mesh);
 			}
 		}
@@ -166,8 +167,8 @@ void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Me
 			if (isPointInsideTriangle(barycentric) && passZBufferTest(point, vertices[0], vertices[1], vertices[2], barycentric)) {
 				Vector2i uv = interpolateTextureCoordinates(barycentric, uvs[0], uvs[1], uvs[2]);
 				RGBA colour = mesh.getTextureColor(uv);
-				float lightIntensity = applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
-				applyLightIntensityToColour(lightIntensity, colour);
+				float lightIntensity = -applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
+				applyLightIntensityToColour(std::max(0.0f,lightIntensity), colour);
 				plotPixel(x, y, colour);
 			}
 		}
@@ -225,7 +226,7 @@ Vector2i interpolateTextureCoordinates(const Vector3f &barycentric, const Vector
 }
 
 float applyGouraudInterpolation(const Vector3f &barycentric, float intensityN0, float intensityN1, float intensityN2) {
-	return 1.0f - (intensityN0 *barycentric.x + intensityN1 * barycentric.y + intensityN2 * barycentric.z);
+	return intensityN0 *barycentric.x + intensityN1 * barycentric.y + intensityN2 * barycentric.z;
 }
 
 void applyLightIntensityToColour(float intensity, RGBA &colour) {
