@@ -81,6 +81,8 @@ void Mesh::loadObjFromFile(const std::string& path) {
 }
 
 void Mesh::loadTexture(const std::string& path) {
+	stbi_set_flip_vertically_on_load(true);
+
 	int req_format = STBI_rgb_alpha;
 	int width, height, orig_format;
 	byte *textureData = stbi_load(path.c_str(), &width, &height, &orig_format, req_format);
@@ -92,7 +94,7 @@ void Mesh::loadTexture(const std::string& path) {
 RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) {
 	assert(texture.data != nullptr);
 	// we must take into account the pitch: 4, and rotate vertically to match the origin of SDL
-	int index = ((textureCoordinate.x * 4) + ((texture.height - textureCoordinate.y) * texture.height * 4));
+	int index = ((textureCoordinate.x * 4) + (textureCoordinate.y * texture.height * 4));
 	RGBA colour;
 	colour.red = texture.data[index];
 	colour.green = texture.data[index + 1];
