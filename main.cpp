@@ -5,18 +5,21 @@
 #define SDL_MAIN_HANDLED 
 #include <SDL.h>
 
+#include "Matrix.h"
 #include "Types.h"
 #include "Mesh.h"
 
 static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
 
-static const Vector3f LIGHT_DIRECTION(0.0f, 0.0f, -1.0f);
+static const Vector3f LIGHT_DIRECTION = Vector3f(0.0f, 1.0f, -1.0f).normalize();
+static const Vector3f CAMERA_EYE(1.0f, -1.0f, 3.0f);
+static const Vector3f CAMERA_CENTER(0.0f, 0.0f, 0.0f);
+static const Vector3f CAMERA_UP(0.0f, 1.0f, 0.0f);
 
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
-Vector3f world2screen(Vector3f v);
 void plotPixel(int x, int y, RGBA colour);
 void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
 void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Mesh &mesh);
@@ -30,6 +33,11 @@ Vector3f calculateBarycentricCoordinates(const Vector2i &point, const Vector3f &
 bool passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &barycentricCoordinates);
 void drawBoundingBox(const BoundingBox &box, const RGBA &colour);
 void applyLightIntensityToColour(float intensity, RGBA &colour);
+
+Vector3f createFromHomogeneousMatrix(Matrix<float> m);
+Matrix<float> createViewportMatrix(int x, int y, int w, int h);
+Matrix<float> lookat(Vector3f eye, Vector3f center, Vector3f up);
+
 
 int main(int argc, char** argv) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
@@ -55,6 +63,13 @@ int main(int argc, char** argv) {
 			zBuffer[j][i] = -std::numeric_limits<float>::max();
 		}
 	}
+
+	// Create matrices to convert from one coordinate system to another in the pipeline
+	Matrix<float> model = lookat(CAMERA_EYE, CAMERA_CENTER, CAMERA_UP);
+	Matrix<float> projection = Matrix<float>::identity(4);
+	projection[3][2] = -1.f / (CAMERA_EYE - CAMERA_CENTER).magnitude();
+	Matrix<float> viewport = createViewportMatrix(SCREEN_WIDTH / 8, SCREEN_HEIGHT / 8, SCREEN_WIDTH * 3 / 4, SCREEN_HEIGHT * 3 / 4);
+	Matrix<float> transformationMatrix = viewport * projection * model;
 
 	SDL_Event event;
 	bool quit = false;
@@ -83,15 +98,10 @@ int main(int argc, char** argv) {
 				texureCoordinates[j] = mesh.getTextureCoordinate(face[j].y);
 				normals[j] = mesh.getNormal(face[j].z);
 				normals[j].normalize();
-				screenCoordinates[j] = world2screen(vertexCoordinates[j]);
+				screenCoordinates[j] = createFromHomogeneousMatrix(transformationMatrix*Matrix<float>(vertexCoordinates[j]));
 			}
 
-			// calculate face normals and check for back face culling
-			Vector3f faceNormal = (vertexCoordinates[2] - vertexCoordinates[0]) ^ (vertexCoordinates[1] - vertexCoordinates[0]);
-			faceNormal.normalize();
-			if (faceNormal.dot(LIGHT_DIRECTION) > 0.0f) {
-				drawTriangle(screenCoordinates, texureCoordinates, normals, mesh);
-			}
+			drawTriangle(screenCoordinates, texureCoordinates, normals, mesh);
 		}
 
 		SDL_UpdateTexture(texture, nullptr, frameBuffer, SCREEN_WIDTH * sizeof(byte) * 4);
@@ -101,10 +111,6 @@ int main(int argc, char** argv) {
 	}
 
 	return 0;
-}
-
-Vector3f world2screen(Vector3f v) {
-	return Vector3f(int((v.x + 1.)*SCREEN_WIDTH / 2. + .5), int((v.y + 1.)*SCREEN_HEIGHT / 2. + .5), v.z);
 }
 
 void plotPixel(int x, int y, RGBA colour) {
@@ -240,4 +246,34 @@ void drawBoundingBox(const BoundingBox &box, const RGBA &colour) {
 	drawLine(box.min.x, box.max.y, box.max.x, box.max.y, colour);
 	drawLine(box.min.x, box.min.y, box.min.x, box.max.y, colour);
 	drawLine(box.max.x, box.min.y, box.max.x, box.max.y, colour);
+}
+
+Matrix<float> createViewportMatrix(int x, int y, int w, int h) {
+	Matrix<float> m = Matrix<float>::identity(4);
+	m[0][3] = x + w / 2.f;
+	m[1][3] = y + h / 2.f;
+	m[2][3] = 255 / 2.f;
+
+	m[0][0] = w / 2.f;
+	m[1][1] = h / 2.f;
+	m[2][2] = 255 / 2.f;
+	return m;
+}
+
+Vector3f createFromHomogeneousMatrix(Matrix<float> m) {
+	return Vector3f(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
+}
+
+Matrix<float> lookat(Vector3f eye, Vector3f center, Vector3f up) {
+	Vector3f z = (eye - center).normalize();
+	Vector3f x = (up^z).normalize();
+	Vector3f y = (z^x).normalize();
+	Matrix<float> res = Matrix<float>::identity(4);
+	for (int i = 0; i<3; i++) {
+		res[0][i] = x[i];
+		res[1][i] = y[i];
+		res[2][i] = z[i];
+		res[i][3] = -center[i];
+	}
+	return res;
 }
