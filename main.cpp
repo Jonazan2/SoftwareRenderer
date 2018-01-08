@@ -13,9 +13,9 @@ static const int SCREEN_WIDTH = 1024;
 static const int SCREEN_HEIGHT = 768;
 
 static const Vector3f LIGHT_DIRECTION = Vector3f(0.0f, 1.0f, -1.0f).normalize();
-static const Vector3f CAMERA_EYE(1.0f, -1.0f, 3.0f);
-static const Vector3f CAMERA_CENTER(0.0f, 0.0f, 0.0f);
-static const Vector3f CAMERA_UP(0.0f, 1.0f, 0.0f);
+static Vector3f CAMERA_EYE(1.0f, -1.0f, 3.0f);
+static Vector3f CAMERA_CENTER(0.0f, 0.0f, 0.0f);
+static Vector3f CAMERA_UP(0.0f, 1.0f, 0.0f);
 
 RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -34,10 +34,9 @@ bool passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &
 void drawBoundingBox(const BoundingBox &box, const RGBA &colour);
 void applyLightIntensityToColour(float intensity, RGBA &colour);
 
-Vector3f createFromHomogeneousMatrix(Matrix<float> m);
-Matrix<float> createViewportMatrix(int x, int y, int w, int h);
-Matrix<float> lookat(Vector3f eye, Vector3f center, Vector3f up);
-
+Vector3f createFromHomogeneousMatrix(const MatrixVectorf &m);
+Matrix4f createViewportMatrix(int x, int y, int w, int h);
+Matrix4f lookat(const Vector3f &eye, Vector3f &center, Vector3f &up);
 
 int main(int argc, char** argv) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
@@ -65,11 +64,11 @@ int main(int argc, char** argv) {
 	}
 
 	// Create matrices to convert from one coordinate system to another in the pipeline
-	Matrix<float> model = lookat(CAMERA_EYE, CAMERA_CENTER, CAMERA_UP);
-	Matrix<float> projection = Matrix<float>::identity(4);
+	Matrix4f model = lookat(CAMERA_EYE, CAMERA_CENTER, CAMERA_UP);
+	Matrix4f projection = Matrix4f::identity();
 	projection[3][2] = -1.f / (CAMERA_EYE - CAMERA_CENTER).magnitude();
-	Matrix<float> viewport = createViewportMatrix(SCREEN_WIDTH / 8, SCREEN_HEIGHT / 8, SCREEN_WIDTH * 3 / 4, SCREEN_HEIGHT * 3 / 4);
-	Matrix<float> transformationMatrix = viewport * projection * model;
+	Matrix4f viewport = createViewportMatrix(SCREEN_WIDTH / 8, SCREEN_HEIGHT / 8, SCREEN_WIDTH * 3 / 4, SCREEN_HEIGHT * 3 / 4);
+	Matrix4f transformationMatrix = viewport * projection * model;
 
 	SDL_Event event;
 	bool quit = false;
@@ -98,9 +97,8 @@ int main(int argc, char** argv) {
 				texureCoordinates[j] = mesh.getTextureCoordinate(face[j].y);
 				normals[j] = mesh.getNormal(face[j].z);
 				normals[j].normalize();
-				screenCoordinates[j] = createFromHomogeneousMatrix(transformationMatrix*Matrix<float>(vertexCoordinates[j]));
+				screenCoordinates[j] = createFromHomogeneousMatrix(transformationMatrix*Matrix4f::fromVector(vertexCoordinates[j]));
 			}
-
 			drawTriangle(screenCoordinates, texureCoordinates, normals, mesh);
 		}
 
@@ -108,6 +106,13 @@ int main(int argc, char** argv) {
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 		SDL_RenderPresent(renderer);
+
+		for (int i = 0; i < SCREEN_WIDTH; i++) {
+			for (int j = 0; j < SCREEN_HEIGHT; j++) {
+				frameBuffer[j][i] = BLACK;
+				zBuffer[j][i] = -std::numeric_limits<float>::max();
+			}
+		}
 	}
 
 	return 0;
@@ -248,8 +253,8 @@ void drawBoundingBox(const BoundingBox &box, const RGBA &colour) {
 	drawLine(box.max.x, box.min.y, box.max.x, box.max.y, colour);
 }
 
-Matrix<float> createViewportMatrix(int x, int y, int w, int h) {
-	Matrix<float> m = Matrix<float>::identity(4);
+Matrix4f createViewportMatrix(int x, int y, int w, int h) {
+	Matrix4f m = Matrix4f::identity();
 	m[0][3] = x + w / 2.f;
 	m[1][3] = y + h / 2.f;
 	m[2][3] = 255 / 2.f;
@@ -260,15 +265,15 @@ Matrix<float> createViewportMatrix(int x, int y, int w, int h) {
 	return m;
 }
 
-Vector3f createFromHomogeneousMatrix(Matrix<float> m) {
+Vector3f createFromHomogeneousMatrix(const MatrixVectorf &m) {
 	return Vector3f(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
 }
 
-Matrix<float> lookat(Vector3f eye, Vector3f center, Vector3f up) {
+Matrix4f lookat(const Vector3f &eye, Vector3f &center, Vector3f &up) {
 	Vector3f z = (eye - center).normalize();
 	Vector3f x = (up^z).normalize();
 	Vector3f y = (z^x).normalize();
-	Matrix<float> res = Matrix<float>::identity(4);
+	Matrix4f res = Matrix4f::identity();
 	for (int i = 0; i<3; i++) {
 		res[0][i] = x[i];
 		res[1][i] = y[i];

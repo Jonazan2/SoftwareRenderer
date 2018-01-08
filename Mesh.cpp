@@ -93,7 +93,6 @@ void Mesh::loadTexture(const std::string& path) {
 
 RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) {
 	assert(texture.data != nullptr);
-	// we must take into account the pitch: 4, and rotate vertically to match the origin of SDL
 	int index = ((textureCoordinate.x * 4) + (textureCoordinate.y * texture.height * 4));
 	RGBA colour;
 	colour.red = texture.data[index];
