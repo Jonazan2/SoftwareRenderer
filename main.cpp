@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 
 	// Create the camera
 	Camera camera;
-	camera.eye = Vector3f{ 1.0f, 1.0f, 3.0f };
+	camera.eye = Vector3f{ 2.0f, 1.0f, 3.0f };
 	camera.center = Vector3f{ 0.0f, 0.0f, 0.0f };
 	camera.up = Vector3f{ 0.0f, 1.0f, 0.0f };
 
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 	rasterizer->createWindow();
 	rasterizer->createProjectionMatrix();
 	rasterizer->createViewportMatrix();
-	rasterizer->setLightPosition(Vector3f(0.0f, 1.0f, -1.0f).normalize());
+	rasterizer->setLightPosition(Vector3f(0.0f, -1.0f, 1.0f).normalize());
 
 	SDL_Event event;
 	bool quit = false;

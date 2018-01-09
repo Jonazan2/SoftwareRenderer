@@ -167,7 +167,7 @@ void Rasterizer::drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f no
 				// Call fragment shader
 				Vector2i uv = interpolateTextureCoordinates(barycentric, uvs[0], uvs[1], uvs[2]);
 				RGBA colour = mesh.getTextureColor(uv);
-				float lightIntensity = -applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
+				float lightIntensity = applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
 				colour.applyLightIntensity(std::max(0.0f, lightIntensity));
 				plotPixel(x, y, colour);
 			}
