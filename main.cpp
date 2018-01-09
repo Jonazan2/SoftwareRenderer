@@ -2,78 +2,36 @@
 #include <algorithm>
 #include <assert.h>
 
-#define SDL_MAIN_HANDLED 
-#include <SDL.h>
+#define SDL_MAIN_HANDLED
 
-#include "Matrix.h"
-#include "Types.h"
-#include "Mesh.h"
-
-static const int SCREEN_WIDTH = 1024;
-static const int SCREEN_HEIGHT = 768;
-
-static const Vector3f LIGHT_DIRECTION = Vector3f(0.0f, 1.0f, -1.0f).normalize();
-static Vector3f CAMERA_EYE(1.0f, -1.0f, 3.0f);
-static Vector3f CAMERA_CENTER(0.0f, 0.0f, 0.0f);
-static Vector3f CAMERA_UP(0.0f, 1.0f, 0.0f);
-
-RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-
-void plotPixel(int x, int y, RGBA colour);
-void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
-void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Mesh &mesh);
-Vector2i interpolateTextureCoordinates(const Vector3f &barycentric, const Vector3f &uv0, const Vector3f &uv1, const Vector3f &uv2);
-float applyGouraudInterpolation(const Vector3f &barycentric, float intensityN0, float intensityN1, float intensityN2);
-
-bool isDegenerate(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
-BoundingBox calculateBoundingBoxOfTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
-bool isPointInsideTriangle(const Vector3f &barycentricCoordinates);
-Vector3f calculateBarycentricCoordinates(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2);
-bool passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &barycentricCoordinates);
-void drawBoundingBox(const BoundingBox &box, const RGBA &colour);
-void applyLightIntensityToColour(float intensity, RGBA &colour);
-
-Vector3f createFromHomogeneousMatrix(const MatrixVectorf &m);
-Matrix4f createViewportMatrix(int x, int y, int w, int h);
-Matrix4f lookat(const Vector3f &eye, Vector3f &center, Vector3f &up);
+#include "types/Types.h"
+#include "rasterizer/Mesh.h"
+#include "rasterizer/Rasterizer.h"
+#include "rasterizer/Camera.h"
 
 int main(int argc, char** argv) {
-	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-		return -1;
-	}
 
-	// Load mesh from OBJ Wavefront file
+	// Load mesh and its textures
 	Mesh mesh;
 	mesh.loadObjFromFile("head.obj");
 	mesh.loadTexture("head_diffuse.png");
 
-	// Create SDL window and rendered for our frame buffer
-	SDL_Window *window = SDL_CreateWindow("Software Renderer", SDL_WINDOWPOS_UNDEFINED, 
-		SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
-	SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32,
-		SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
+	// Create the camera
+	Camera camera;
+	camera.eye = Vector3f{ 1.0f, 1.0f, 3.0f };
+	camera.center = Vector3f{ 0.0f, 0.0f, 0.0f };
+	camera.up = Vector3f{ 0.0f, 1.0f, 0.0f };
 
-	// Init frame buffer to BLACK and zBuffer to the largest float possible ( 0 will be closest to camera )
-	for (int i = 0; i < SCREEN_WIDTH; i++) {
-		for (int j = 0; j < SCREEN_HEIGHT; j++) {
-			frameBuffer[j][i] = BLACK;
-			zBuffer[j][i] = -std::numeric_limits<float>::max();
-		}
-	}
-
-	// Create matrices to convert from one coordinate system to another in the pipeline
-	Matrix4f model = lookat(CAMERA_EYE, CAMERA_CENTER, CAMERA_UP);
-	Matrix4f projection = Matrix4f::identity();
-	projection[3][2] = -1.f / (CAMERA_EYE - CAMERA_CENTER).magnitude();
-	Matrix4f viewport = createViewportMatrix(SCREEN_WIDTH / 8, SCREEN_HEIGHT / 8, SCREEN_WIDTH * 3 / 4, SCREEN_HEIGHT * 3 / 4);
-	Matrix4f transformationMatrix = viewport * projection * model;
+	// Create the rasterizer and setup the transform matrices
+	Rasterizer *rasterizer = new Rasterizer(&mesh, camera);
+	rasterizer->createWindow();
+	rasterizer->createProjectionMatrix();
+	rasterizer->createViewportMatrix();
+	rasterizer->setLightPosition(Vector3f(0.0f, 1.0f, -1.0f).normalize());
 
 	SDL_Event event;
 	bool quit = false;
 	while (!quit) {
-
 		// handle keyboard events
 		while (SDL_PollEvent(&event)) {
 			if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
@@ -85,200 +43,9 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		// draw faces of the mesh
-		for (int i = 0; i < mesh.getFacesCount(); i++) {
-			const FaceVector& face = mesh.getFace(i);
-			Vector3f screenCoordinates[3];
-			Vector3f texureCoordinates[3];
-			Vector3f normals[3];
-			Vector3f vertexCoordinates[3];
-			for (int j = 0; j < 3; j++) {
-				vertexCoordinates[j] = mesh.getVertex(face[j].x);
-				texureCoordinates[j] = mesh.getTextureCoordinate(face[j].y);
-				normals[j] = mesh.getNormal(face[j].z);
-				normals[j].normalize();
-				screenCoordinates[j] = createFromHomogeneousMatrix(transformationMatrix*Matrix4f::fromVector(vertexCoordinates[j]));
-			}
-			drawTriangle(screenCoordinates, texureCoordinates, normals, mesh);
-		}
-
-		SDL_UpdateTexture(texture, nullptr, frameBuffer, SCREEN_WIDTH * sizeof(byte) * 4);
-		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, texture, nullptr, nullptr);
-		SDL_RenderPresent(renderer);
-
-		for (int i = 0; i < SCREEN_WIDTH; i++) {
-			for (int j = 0; j < SCREEN_HEIGHT; j++) {
-				frameBuffer[j][i] = BLACK;
-				zBuffer[j][i] = -std::numeric_limits<float>::max();
-			}
-		}
+		rasterizer->draw();
 	}
 
+	delete rasterizer;
 	return 0;
-}
-
-void plotPixel(int x, int y, RGBA colour) {
-	assert(x < SCREEN_WIDTH && y < SCREEN_HEIGHT);
-	frameBuffer[SCREEN_HEIGHT - y][x] = colour;
-}
-
-void drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
-	const bool steep = (fabs(y1 - y0) > fabs(x1 - x0));
-
-	if (steep) {
-		std::swap(x0, y0);
-		std::swap(x1, y1);
-	}
-
-	if (x0 > x1) {
-		std::swap(x0, x1);
-		std::swap(y0, y1);
-	}
-
-	const float dx = x1 - x0;
-	const float dy = fabs(y1 - y0);
-	float error = dx / 2.0f;
-
-	const int ystep = (y0 < y1) ? 1 : -1;
-
-	for (int x = x0, y = y0; x < x1; x++) {
-		if (steep) {
-			plotPixel(y, x, colour);
-		} else {
-			plotPixel(x, y, colour);
-		}
-
-		error -= dy;
-		if (error < 0) {
-			y += ystep;
-			error += dx;
-		}
-	}
-}
-
-void drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Mesh &mesh) {
-	// check if triangle is degenerate to discard it
-	if (isDegenerate(vertices[0], vertices[1], vertices[2])) {
-		return;
-	}
-
-	// pre calculculate light intensity at normals
-	float intensities[3];
-	for (int i = 0; i < 3; i++) {
-		intensities[i] = normals[i].dot(LIGHT_DIRECTION);
-	}
-
-	// draw triangle
-	BoundingBox box = calculateBoundingBoxOfTriangle(vertices[0], vertices[1], vertices[2]);
-	for (int x = box.min.x; x <= box.max.x; x++) {
-		for (int y = box.min.y; y <= box.max.y; y++) {
-			Vector2i point = { x, y };
-			Vector3f barycentric = calculateBarycentricCoordinates(point, vertices[0], vertices[1], vertices[2]);
-			if (isPointInsideTriangle(barycentric) && passZBufferTest(point, vertices[0], vertices[1], vertices[2], barycentric)) {
-				Vector2i uv = interpolateTextureCoordinates(barycentric, uvs[0], uvs[1], uvs[2]);
-				RGBA colour = mesh.getTextureColor(uv);
-				float lightIntensity = -applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
-				applyLightIntensityToColour(std::max(0.0f,lightIntensity), colour);
-				plotPixel(x, y, colour);
-			}
-		}
-	}
-}
-
-bool isDegenerate(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2) {
-	return v0.y == v1.y && v0.y == v2.y;
-}
-
-BoundingBox calculateBoundingBoxOfTriangle(const Vector3f &v0, const Vector3f &v1, const Vector3f &v2) {
-	BoundingBox box;
-	box.min = Vector2i(std::min({ v0.x, v1.x, v2.x, static_cast<float>(SCREEN_WIDTH - 1) }),
-		std::min({ v0.y, v1.y, v2.y, static_cast<float>(SCREEN_HEIGHT - 1) }));
-
-	box.max = Vector2i(std::max({ v0.x, v1.x, v2.x}),
-		std::max({ v0.y, v1.y, v2.y }));
-
-	box.max.x = std::min(box.max.x, SCREEN_WIDTH - 1);
-	box.max.y = std::min(box.max.y, SCREEN_HEIGHT - 1);
-
-	return box;
-}
-
-Vector3f calculateBarycentricCoordinates(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2) {
-	Vector3f a(v2.x - v0.x, v1.x - v0.x, v0.x - point.x);
-	Vector3f b(v2.y - v0.y, v1.y - v0.y, v0.y - point.y);
-	Vector3f u = a.cross(b);
-	if (u.z == 0) {
-		return Vector3f(-1, 1, 1);
-	}
-	return Vector3f(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
-}
-
-bool isPointInsideTriangle(const Vector3f &barycentricCoordinates) {
-	return barycentricCoordinates.x >= 0 && barycentricCoordinates.y >= 0 && barycentricCoordinates.z >= 0;
-}
-
-bool passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &barycentricCoordinates) {
-	float zValue = v0.z *barycentricCoordinates.x + v1.z * barycentricCoordinates.y + v2.z * barycentricCoordinates.z;
-
-	if (zBuffer[point.y][point.x] < zValue) {
-		zBuffer[point.y][point.x] = zValue;
-		return true;
-	} else {
-		return false;
-	}
-}
-
-Vector2i interpolateTextureCoordinates(const Vector3f &barycentric, const Vector3f &uv0, const Vector3f &uv1, const Vector3f &uv2) {
-	Vector2i uvInterpolated;
-	uvInterpolated.x = uv0.x *barycentric.x + uv1.x * barycentric.y + uv2.x * barycentric.z;
-	uvInterpolated.y = uv0.y *barycentric.x + uv1.y * barycentric.y + uv2.y * barycentric.z;
-	return uvInterpolated;
-}
-
-float applyGouraudInterpolation(const Vector3f &barycentric, float intensityN0, float intensityN1, float intensityN2) {
-	return intensityN0 *barycentric.x + intensityN1 * barycentric.y + intensityN2 * barycentric.z;
-}
-
-void applyLightIntensityToColour(float intensity, RGBA &colour) {
-	colour.red = colour.red * intensity;
-	colour.green = colour.green * intensity;
-	colour.blue = colour.blue * intensity;
-}
-
-void drawBoundingBox(const BoundingBox &box, const RGBA &colour) {
-	drawLine(box.min.x, box.min.y, box.max.x, box.min.y, colour);
-	drawLine(box.min.x, box.max.y, box.max.x, box.max.y, colour);
-	drawLine(box.min.x, box.min.y, box.min.x, box.max.y, colour);
-	drawLine(box.max.x, box.min.y, box.max.x, box.max.y, colour);
-}
-
-Matrix4f createViewportMatrix(int x, int y, int w, int h) {
-	Matrix4f m = Matrix4f::identity();
-	m[0][3] = x + w / 2.f;
-	m[1][3] = y + h / 2.f;
-	m[2][3] = 255 / 2.f;
-
-	m[0][0] = w / 2.f;
-	m[1][1] = h / 2.f;
-	m[2][2] = 255 / 2.f;
-	return m;
-}
-
-Vector3f createFromHomogeneousMatrix(const MatrixVectorf &m) {
-	return Vector3f(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
-}
-
-Matrix4f lookat(const Vector3f &eye, Vector3f &center, Vector3f &up) {
-	Vector3f z = (eye - center).normalize();
-	Vector3f x = (up^z).normalize();
-	Vector3f y = (z^x).normalize();
-	Matrix4f res = Matrix4f::identity();
-	for (int i = 0; i<3; i++) {
-		res[0][i] = x[i];
-		res[1][i] = y[i];
-		res[2][i] = z[i];
-		res[i][3] = -center[i];
-	}
-	return res;
 }

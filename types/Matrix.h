@@ -27,6 +27,18 @@ public:
 		memset(matrix, static_cast<T>(0), sizeof(T) * rowDimension * colDimension);
 	}
 
+	Matrix(std::initializer_list<std::initializer_list<T>> set) {
+		memset(matrix, static_cast<T>(0), sizeof(T) * rowDimension * colDimension);
+
+		std::initializer_list<std::initializer_list<T>>::const_iterator it = set.begin();
+		for (int i = 0; it != set.end(); i++, ++it) {
+			std::initializer_list<T >::const_iterator rowIterator = it->begin();
+			for (int j = 0; rowIterator != it->end(); j++, ++rowIterator) {
+				matrix[i][j] = *rowIterator;
+			}
+		}
+	}
+
 	Matrix<T, colDimension, rowDimension> getTransposed() {
 		Matrix<T, colDimension, rowDimension> transposed;
 		for (int i = 0; i < rowDimension; i++) {

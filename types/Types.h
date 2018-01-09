@@ -14,6 +14,12 @@ struct RGBA {
 		return red == other.red && green == other.green
 			&& blue == other.blue && alpha == other.alpha;
 	}
+
+	void applyLightIntensity(float intensity) {
+		red = red * intensity;
+		green = green * intensity;
+		blue = blue * intensity;
+	}
 };
 
 static const RGBA BLACK = { 0x00, 0x00, 0x00, 0xFF };

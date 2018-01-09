@@ -2,8 +2,8 @@
 
 #include <string>
 #include <vector>
-#include "Vector3.h"
-#include "Types.h"
+#include "../types/Vector3.h"
+#include "../types/Types.h"
 
 using FaceVector = std::vector<Vector3i>;
 
