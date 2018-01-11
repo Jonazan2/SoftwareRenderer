@@ -16,8 +16,8 @@ int main(int argc, char** argv) {
 
 	// Load mesh and its textures
 	Mesh mesh;
-	mesh.loadObjFromFile("diablo3.obj");
-	mesh.loadDiffuseTexture("diablo3_diffuse.png");
+	mesh.loadObjFromFile("head.obj");
+	mesh.loadDiffuseTexture("head_diffuse.png");
 
 	// Create the camera
 	Camera camera;
@@ -26,18 +26,18 @@ int main(int argc, char** argv) {
 	camera.up = Vector3f{ 0.0f, 1.0f, 0.0f };
 
 	// Create the rasterizer and setup the transform matrices
-	Rasterizer *rasterizer = new Rasterizer(&mesh, &camera);
-	rasterizer->createWindow();
-	rasterizer->createProjectionMatrix();
-	rasterizer->createViewportMatrix();
+	Rasterizer rasterizer(&mesh, &camera);
+	rasterizer.createWindow();
+	rasterizer.createProjectionMatrix();
+	rasterizer.createViewportMatrix();
 
 	// Create and set the light position in the rasterizer
 	Vector3f light = Vector3f(0.0f, 0.0f, 1.0f).normalize();
-	rasterizer->setLightPosition(light);
+	rasterizer.setLightPosition(light);
 
 	// load shader
 	std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
-	rasterizer->loadShader(shader);
+	rasterizer.loadShader(shader);
 
 	// init offset for camera movement
 	float cameraOffset = 0.1;
@@ -63,19 +63,19 @@ int main(int argc, char** argv) {
 					case SDLK_F1:
 					{
 						std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
-						rasterizer->loadShader(shader);
+						rasterizer.loadShader(shader);
 					}
 					break;
 					case SDLK_F2:
 					{
 						std::unique_ptr<Shader> shader = std::unique_ptr<FaceIlluminationShader>(new FaceIlluminationShader());
-						rasterizer->loadShader(shader);
+						rasterizer.loadShader(shader);
 					}
 					break;
 					case SDLK_F3:
 					{
 						std::unique_ptr<Shader> shader = std::unique_ptr<ClampIlluminationShader>(new ClampIlluminationShader());
-						rasterizer->loadShader(shader);
+						rasterizer.loadShader(shader);
 					}
 					break;
 
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		rasterizer->draw();
+		rasterizer.draw();
 
 		// move camera around
 		camera.eye.x += cameraOffset;
@@ -98,8 +98,8 @@ int main(int argc, char** argv) {
 		} else if (camera.eye.x < -10.0f) {
 			cameraOffset = 0.1f;
 		}
-		rasterizer->setCamera(&camera);
-		rasterizer->clearBuffers();
+		rasterizer.setCamera(&camera);
+		rasterizer.clearBuffers();
 
 		// FPS counter
 		current = std::chrono::high_resolution_clock::now();
@@ -108,12 +108,11 @@ int main(int argc, char** argv) {
 		frames++;
 
 		if (elapsed.count() >= 1000.0f) {
-			rasterizer->setFpsCount(frames);
+			rasterizer.setFpsCount(frames);
 			elapsed = std::chrono::milliseconds::zero();
 			frames = 0;
 		}
 	}
 
-	delete rasterizer;
 	return 0;
 }

@@ -5,7 +5,16 @@
 #include "../shaders/GouraudShader.h"
 #include "../shaders/ClampIlluminationShader.h"
 
+Rasterizer::Rasterizer(Mesh *mesh, Camera *camera) : mesh(mesh), camera(camera) {
+	frameBuffer = new RGBA[SCREEN_WIDTH * SCREEN_HEIGHT];
+	zBuffer = new float[SCREEN_WIDTH * SCREEN_HEIGHT];
+	clearBuffers();
+}
+
 Rasterizer::~Rasterizer() {
+	delete[] frameBuffer;
+	delete[] zBuffer;
+
 	SDL_DestroyWindow(window);
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
@@ -25,11 +34,10 @@ void Rasterizer::createWindow() {
 }
 
 void Rasterizer::clearBuffers() {
-	for (int i = 0; i < SCREEN_WIDTH; i++) {
-		for (int j = 0; j < SCREEN_HEIGHT; j++) {
-			frameBuffer[j][i] = BLACK;
-			zBuffer[j][i] = -std::numeric_limits<float>::max();
-		}
+	memset(frameBuffer, 0x00, sizeof(RGBA) * SCREEN_HEIGHT * SCREEN_WIDTH);
+
+	for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
+		zBuffer[i] = -std::numeric_limits<float>::max();
 	}
 }
 
@@ -130,8 +138,9 @@ void Rasterizer::draw() {
 bool Rasterizer::passZBufferTest(const Vector2i &point, const Vector3f &v0, const Vector3f &v1, const Vector3f &v2, const Vector3f &barycentricCoordinates) {
 	float zValue = v0.z *barycentricCoordinates.x + v1.z * barycentricCoordinates.y + v2.z * barycentricCoordinates.z;
 
-	if (zBuffer[point.y][point.x] < zValue) {
-		zBuffer[point.y][point.x] = zValue;
+	int index = point.x + point.y * SCREEN_WIDTH;
+	if (zBuffer[index] < zValue) {
+		zBuffer[index] = zValue;
 		return true;
 	} else {
 		return false;
@@ -147,7 +156,9 @@ void Rasterizer::drawBoundingBox(const BoundingBox &box, const RGBA &colour) {
 
 void Rasterizer::plotPixel(int x, int y, RGBA colour) {
 	assert(x < SCREEN_WIDTH && y < SCREEN_HEIGHT);
-	frameBuffer[SCREEN_HEIGHT - y][x] = colour;
+
+	int index = x + ((SCREEN_HEIGHT - y) * SCREEN_WIDTH);
+	frameBuffer[index] = colour;
 }
 
 void Rasterizer::drawLine(int x0, int y0, int x1, int y1, RGBA colour) {

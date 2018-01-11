@@ -11,12 +11,8 @@
 class Rasterizer {
 public:
 
-	Rasterizer(Mesh *mesh, Camera* camera) : mesh(mesh), camera(camera) {
-		clearBuffers();
-	};
-
+	Rasterizer(Mesh *mesh, Camera* camera);
 	~Rasterizer();
-	void clearBuffers();
 
 	void createWindow();
 	void createViewportMatrix();
@@ -24,6 +20,7 @@ public:
 	void loadShader(std::unique_ptr<Shader> &shader) { this->shader = std::move(shader); }
 
 	void draw();
+	void clearBuffers();
 
 	void setCamera(Camera* camera) { this->camera = camera; }
 	void setLightPosition(const Vector3f light) { this->light = light; }
@@ -49,8 +46,8 @@ private:
 	SDL_Texture* texture;
 	SDL_Renderer* renderer;
 
-	RGBA frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-	float zBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+	RGBA *frameBuffer;
+	float *zBuffer;
 
 	void plotPixel(int x, int y, RGBA colour);
 	void drawLine(int x0, int y0, int x1, int y1, RGBA colour);
