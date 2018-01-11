@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <iostream>
 #include "Vector3.h"
@@ -21,6 +23,10 @@ public:
 		matrix[2][0] = vector.z;
 		matrix[3][0] = static_cast<T>(1);
 		return matrix;
+	}
+
+	static Vector3f createFromHomogeneousMatrix(const Matrix<float, 4, 1> &m) {
+		return Vector3f(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
 	}
 
 	Matrix() {

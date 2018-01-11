@@ -1,6 +1,10 @@
 #include "Rasterizer.h"
 #include <algorithm>
 
+#include "../shaders/FaceIlluminationShader.h"
+#include "../shaders/GouraudShader.h"
+#include "../shaders/ClampIlluminationShader.h"
+
 Rasterizer::~Rasterizer() {
 	SDL_DestroyWindow(window);
 	SDL_DestroyTexture(texture);
@@ -47,33 +51,73 @@ void Rasterizer::createViewportMatrix() {
 
 void Rasterizer::createProjectionMatrix() {
 	projection = Matrix4f::identity();
-	projection[3][2] = -1.f / (camera.eye - camera.center).magnitude();
+	projection[3][2] = -1.f / (camera->eye - camera->center).magnitude();
+}
+
+void Rasterizer::setUniformsInShader() {
+	assert(shader != nullptr);
+
+	switch (shader->getType()) {
+		case ShaderType::FACE_ILLUMINATION:
+		{
+			FaceIlluminationShader * tmp = dynamic_cast<FaceIlluminationShader*>(shader.get());
+			tmp->mesh = mesh;
+			tmp->lightDirection = light;
+			tmp->transform = transform;
+		}
+		break;
+
+		case ShaderType::GOURAUD:
+		{
+			GouraudShader * tmp = dynamic_cast<GouraudShader*>(shader.get());
+			tmp->mesh = mesh;
+			tmp->lightDirection = light;
+			tmp->transform = transform;
+		}
+		break;
+
+		case ShaderType::CLAMP_ILUMINATION:
+		{
+			ClampIlluminationShader * tmp = dynamic_cast<ClampIlluminationShader*>(shader.get());
+			tmp->mesh = mesh;
+			tmp->lightDirection = light;
+			tmp->transform = transform;
+		}
+		break;
+		
+		default:
+			assert("uniforms not set");
+		break;
+	}
 }
 
 void Rasterizer::draw() {
+	assert(shader != nullptr);
 
 	// Create the transform matrix 
-	Matrix4f model = Matrix4f::identity();
-	Matrix4f view = camera.lookat();
-	projection[3][2] = -1.f / (camera.eye - camera.center).magnitude();
-	Matrix4f transformationMatrix = viewport * projection * view * model;
+	model = Matrix4f::identity();
+	view = camera->lookat();
+	projection[3][2] = -1.f / (camera->eye - camera->center).magnitude();
+	transform = viewport * projection * view * model;
+
+	setUniformsInShader();
 
 	// draw faces of the mesh
 	for (int i = 0; i < mesh->getFacesCount(); i++) {
 		const FaceVector& face = mesh->getFace(i);
 		Vector3f screenCoordinates[3];
-		Vector3f texureCoordinates[3];
-		Vector3f normals[3];
-		Vector3f vertexCoordinates[3];
 		for (int j = 0; j < 3; j++) {
-			// call vertex shader
-			vertexCoordinates[j] = mesh->getVertex(face[j].x);
-			texureCoordinates[j] = mesh->getTextureCoordinate(face[j].y);
-			normals[j] = mesh->getNormal(face[j].z);
-			normals[j].normalize();
-			screenCoordinates[j] = createFromHomogeneousMatrix(transformationMatrix*Matrix4f::fromVector(vertexCoordinates[j]));
+			screenCoordinates[j] = shader->vertex(i, j);
 		}
-		drawTriangle(screenCoordinates, texureCoordinates, normals, *mesh);
+
+		shader->geometry(i, screenCoordinates);
+
+		// back face culling
+		Vector3f faceNormal = (screenCoordinates[1] - screenCoordinates[0]) ^ (screenCoordinates[2] - screenCoordinates[0]);
+		faceNormal.normalize();
+		if (faceNormal.dot(light) > 0.0f) {
+			drawTriangle(screenCoordinates);
+		}
 	}
 
 	SDL_UpdateTexture(texture, nullptr, frameBuffer, SCREEN_WIDTH * sizeof(byte) * 4);
@@ -100,11 +144,6 @@ void Rasterizer::drawBoundingBox(const BoundingBox &box, const RGBA &colour) {
 	drawLine(box.min.x, box.min.y, box.min.x, box.max.y, colour);
 	drawLine(box.max.x, box.min.y, box.max.x, box.max.y, colour);
 }
-
-Vector3f Rasterizer::createFromHomogeneousMatrix(const MatrixVectorf &m) {
-	return Vector3f(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
-}
-
 
 void Rasterizer::plotPixel(int x, int y, RGBA colour) {
 	assert(x < SCREEN_WIDTH && y < SCREEN_HEIGHT);
@@ -145,16 +184,10 @@ void Rasterizer::drawLine(int x0, int y0, int x1, int y1, RGBA colour) {
 	}
 }
 
-void Rasterizer::drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f normals[3], Mesh &mesh) {
+void Rasterizer::drawTriangle(Vector3f vertices[3]) {
 	// check if triangle is degenerate to discard it
 	if (isDegenerate(vertices[0], vertices[1], vertices[2])) {
 		return;
-	}
-
-	// pre calculculate light intensity at normals
-	float intensities[3];
-	for (int i = 0; i < 3; i++) {
-		intensities[i] = normals[i].dot(light);
 	}
 
 	// draw triangle
@@ -165,10 +198,7 @@ void Rasterizer::drawTriangle(Vector3f vertices[3], Vector3f uvs[3], Vector3f no
 			Vector3f barycentric = calculateBarycentricCoordinates(point, vertices[0], vertices[1], vertices[2]);
 			if (isPointInsideTriangle(barycentric) && passZBufferTest(point, vertices[0], vertices[1], vertices[2], barycentric)) {
 				// Call fragment shader
-				Vector2i uv = interpolateTextureCoordinates(barycentric, uvs[0], uvs[1], uvs[2]);
-				RGBA colour = mesh.getTextureColor(uv);
-				float lightIntensity = applyGouraudInterpolation(barycentric, intensities[0], intensities[1], intensities[2]);
-				colour.applyLightIntensity(std::max(0.0f, lightIntensity));
+				RGBA colour = shader->fragment(barycentric);
 				plotPixel(x, y, colour);
 			}
 		}
@@ -205,16 +235,4 @@ Vector3f Rasterizer::calculateBarycentricCoordinates(const Vector2i &point, cons
 
 bool Rasterizer::isPointInsideTriangle(const Vector3f &barycentricCoordinates) {
 	return barycentricCoordinates.x >= 0 && barycentricCoordinates.y >= 0 && barycentricCoordinates.z >= 0;
-}
-
-
-Vector2i Rasterizer::interpolateTextureCoordinates(const Vector3f &barycentric, const Vector3f &uv0, const Vector3f &uv1, const Vector3f &uv2) {
-	Vector2i uvInterpolated;
-	uvInterpolated.x = uv0.x *barycentric.x + uv1.x * barycentric.y + uv2.x * barycentric.z;
-	uvInterpolated.y = uv0.y *barycentric.x + uv1.y * barycentric.y + uv2.y * barycentric.z;
-	return uvInterpolated;
-}
-
-float Rasterizer::applyGouraudInterpolation(const Vector3f &barycentric, float intensityN0, float intensityN1, float intensityN2) {
-	return intensityN0 *barycentric.x + intensityN1 * barycentric.y + intensityN2 * barycentric.z;
 }

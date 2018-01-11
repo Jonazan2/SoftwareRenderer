@@ -14,7 +14,7 @@ public:
 	~Mesh();
 
 	void loadObjFromFile(const std::string& path);
-	void loadTexture(const std::string& path);
+	void loadDiffuseTexture(const std::string& path);
 
 	int getVerticesCount() const;
 	int getTextureCoordinatesCount() const;
@@ -23,11 +23,11 @@ public:
 	const std::vector<FaceVector>& getFaces() const;
 
 	const Vector3f& getVertex(size_t index) const;
-	Vector3f getTextureCoordinate(size_t index) const;
+	Vector3f getDiffuseTextureCoordinate(size_t index) const;
 	const Vector3f& getNormal(size_t index) const;
 	const FaceVector& getFace(size_t index) const;
 
-	RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate);
+	RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) const;
 
 private:
 
@@ -42,5 +42,5 @@ private:
 	std::vector<Vector3f> normals;
 	std::vector<FaceVector> faces;
 	std::vector<Vector3f> spaceVertices;
-	Texture texture;
+	Texture diffuse;
 };

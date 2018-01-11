@@ -16,8 +16,8 @@ Mesh::Mesh() {
 }
 
 Mesh::~Mesh() {
-	if (texture.data != nullptr) {
-		stbi_image_free(texture.data);
+	if (diffuse.data != nullptr) {
+		stbi_image_free(diffuse.data);
 	}
 }
 
@@ -80,7 +80,7 @@ void Mesh::loadObjFromFile(const std::string& path) {
 	file.close();
 }
 
-void Mesh::loadTexture(const std::string& path) {
+void Mesh::loadDiffuseTexture(const std::string& path) {
 	stbi_set_flip_vertically_on_load(true);
 
 	int req_format = STBI_rgb_alpha;
@@ -88,17 +88,17 @@ void Mesh::loadTexture(const std::string& path) {
 	byte *textureData = stbi_load(path.c_str(), &width, &height, &orig_format, req_format);
 	assert(textureData != nullptr && req_format == orig_format);
 
-	texture = { width, height, textureData };
+	diffuse = { width, height, textureData };
 }
 
-RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) {
-	assert(texture.data != nullptr);
-	int index = ((textureCoordinate.x * 4) + (textureCoordinate.y * texture.height * 4));
+RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) const {
+	assert(diffuse.data != nullptr);
+	int index = ((textureCoordinate.x * 4) + (textureCoordinate.y * diffuse.height * 4));
 	RGBA colour;
-	colour.red = texture.data[index];
-	colour.green = texture.data[index + 1];
-	colour.blue = texture.data[index + 2];
-	colour.alpha = texture.data[index + 3];
+	colour.red = diffuse.data[index];
+	colour.green = diffuse.data[index + 1];
+	colour.blue = diffuse.data[index + 2];
+	colour.alpha = diffuse.data[index + 3];
 	return colour;
 }
 
@@ -122,11 +122,11 @@ const std::vector<FaceVector>& Mesh::getFaces() const {
 	return faces;
 }
 
-Vector3f Mesh::getTextureCoordinate(size_t index) const {
+Vector3f Mesh::getDiffuseTextureCoordinate(size_t index) const {
 	assert(index < textureCoordinates.size());
 	Vector3f uv = textureCoordinates[index];
-	uv.x = uv.x * texture.width;
-	uv.y = uv.y * texture.height;
+	uv.x = uv.x * diffuse.width;
+	uv.y = uv.y * diffuse.height;
 	return uv;
 }
 
