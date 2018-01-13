@@ -103,7 +103,7 @@ void Rasterizer::draw() {
 	assert(shader != nullptr);
 
 	// Create the transform matrix 
-	model = Matrix4f::identity();
+	model = mesh->getModelMatrix();
 	view = camera->lookat();
 	projection[3][2] = -1.f / (camera->eye - camera->center).magnitude();
 	transform = viewport * projection * view * model;

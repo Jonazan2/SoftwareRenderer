@@ -4,6 +4,7 @@
 #include <vector>
 #include "../types/Vector3.h"
 #include "../types/Types.h"
+#include "../types/Matrix.h"
 
 using FaceVector = std::vector<Vector3i>;
 
@@ -15,6 +16,7 @@ public:
 
 	void loadObjFromFile(const std::string& path);
 	void loadDiffuseTexture(const std::string& path);
+	void loadNormalMap(const std::string& path);
 
 	int getVerticesCount() const;
 	int getTextureCoordinatesCount() const;
@@ -27,7 +29,14 @@ public:
 	const Vector3f& getNormal(size_t index) const;
 	const FaceVector& getFace(size_t index) const;
 
-	RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) const;
+	RGBA Mesh::getDiffuseColor(const Vector2i &textureCoordinate) const;
+
+	const Matrix4f& getModelMatrix() const { return model; }
+	void translate(Vector3f translation);
+	void scale(float x, float y, float z);
+	void rotatePitch(float degrees);
+	void rotateRoll(float degrees);
+	void rotateYaw(float degrees);
 
 private:
 
@@ -36,11 +45,16 @@ private:
 		int height;
 		byte *data;
 	};
+	
+	Matrix4f model;
+	Texture diffuse;
+	Texture normalMap;
 
 	std::vector<Vector3f> vertices;
 	std::vector<Vector3f> textureCoordinates;
 	std::vector<Vector3f> normals;
 	std::vector<FaceVector> faces;
 	std::vector<Vector3f> spaceVertices;
-	Texture diffuse;
+
+	void loadTexture(Texture &texture, const std::string &filename, int format);
 };

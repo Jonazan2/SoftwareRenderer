@@ -16,8 +16,8 @@ int main(int argc, char** argv) {
 
 	// Load mesh and its textures
 	Mesh mesh;
-	mesh.loadObjFromFile("head.obj");
-	mesh.loadDiffuseTexture("head_diffuse.png");
+	mesh.loadObjFromFile("diablo3.obj");
+	mesh.loadDiffuseTexture("diablo3_diffuse.png");
 
 	// Create the camera
 	Camera camera;

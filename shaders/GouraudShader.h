@@ -31,7 +31,7 @@ public:
 		uvInterpolated.y = uvs[0].y *barycentric.x + uvs[1].y * barycentric.y + uvs[2].y * barycentric.z;
 
 		float lightIntensity = light[0] *barycentric.x + light[1] * barycentric.y + light[2] * barycentric.z;
-		RGBA colour = mesh->getTextureColor(uvInterpolated);
+		RGBA colour = mesh->getDiffuseColor(uvInterpolated);
 		colour.applyLightIntensity(std::max(0.0f, lightIntensity));
 		return colour;
 	}

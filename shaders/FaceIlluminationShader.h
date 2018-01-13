@@ -31,7 +31,7 @@ public:
 	}
 
 	RGBA fragment(const Vector3f &barycentric) override final {
-		RGBA colour = mesh->getTextureColor(uv);
+		RGBA colour = mesh->getDiffuseColor(uv);
 		colour.applyLightIntensity(faceIlumination);
 		return colour;
 	}

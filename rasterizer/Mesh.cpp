@@ -3,11 +3,12 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <math.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-Mesh::Mesh() {
+Mesh::Mesh() : model(Matrix4f::identity()) {
 	vertices.clear();
 	textureCoordinates.clear();
 	normals.clear();
@@ -81,17 +82,24 @@ void Mesh::loadObjFromFile(const std::string& path) {
 }
 
 void Mesh::loadDiffuseTexture(const std::string& path) {
-	stbi_set_flip_vertically_on_load(true);
-
-	int req_format = STBI_rgb_alpha;
-	int width, height, orig_format;
-	byte *textureData = stbi_load(path.c_str(), &width, &height, &orig_format, req_format);
-	assert(textureData != nullptr && req_format == orig_format);
-
-	diffuse = { width, height, textureData };
+	loadTexture(diffuse, path, STBI_rgb_alpha);
 }
 
-RGBA Mesh::getTextureColor(const Vector2i &textureCoordinate) const {
+void Mesh::loadNormalMap(const std::string& path) {
+	loadTexture(normalMap, path, STBI_rgb);
+}
+
+void Mesh::loadTexture(Texture &texture, const std::string &filename, int format) {
+	stbi_set_flip_vertically_on_load(true);
+
+	int width, height, orig_format;
+	byte *textureData = stbi_load(filename.c_str(), &width, &height, &orig_format, format);
+	assert(textureData != nullptr && format == orig_format);
+
+	texture = { width, height, textureData };
+}
+
+RGBA Mesh::getDiffuseColor(const Vector2i &textureCoordinate) const {
 	assert(diffuse.data != nullptr);
 	int index = ((textureCoordinate.x * 4) + (textureCoordinate.y * diffuse.height * 4));
 	RGBA colour;
@@ -143,4 +151,59 @@ const Vector3f& Mesh::getNormal(size_t index) const {
 const FaceVector& Mesh::getFace(size_t index) const {
 	assert(index < faces.size());
 	return faces[index];
+}
+
+void Mesh::translate(Vector3f translation) {
+	Matrix4f translationMatrix = {
+		{ 1,0,0,translation.x },
+		{ 0,1,0,translation.y },
+		{ 0,0,1,translation.z },
+		{ 0,0,0,1 }
+	};
+
+	model = model * translationMatrix;
+}
+
+void Mesh::scale(float x, float y, float z) {
+	Matrix4f scaleMatrix = {
+		{ x,0,0,0 },
+		{ 0,y,0,0 },
+		{ 0,0,z,0 },
+		{ 0,0,0,1 }
+	};
+
+	model = model * scaleMatrix;
+}
+
+void Mesh::rotatePitch(float degrees) {
+	// rotate x axis
+	Matrix4f rotateXMatrix = {
+		{ 1,0,0,0 },
+		{ 0,cos(degrees),-sin(degrees),0 },
+		{ 0,sin(degrees),cos(degrees),0 },
+		{ 0,0,0,1 }
+	};
+	model = model * rotateXMatrix;
+}
+
+void Mesh::rotateRoll(float degrees) {
+	// rotate z axis
+	Matrix4f rotateZMatrix = {
+		{ cos(degrees),-sin(degrees),0,0 },
+		{ sin(degrees),cos(degrees),0,0 },
+		{ 0,0,1,0 },
+		{ 0,0,0,1 }
+	};
+	model = model * rotateZMatrix;
+}
+
+void Mesh::rotateYaw(float degrees) {
+	// rotate y axis
+	Matrix4f rotateYMatrix = {
+		{ cos(degrees),0,sin(degrees),0 },
+		{ 0,1,0,0 },
+		{ -sin(degrees),0,cos(degrees),0 },
+		{ 0,0,0,1 }
+	};
+	model = model * rotateYMatrix;
 }

@@ -34,19 +34,17 @@ public:
 		uvInterpolated.x = uvs[0].x *barycentric.x + uvs[1].x * barycentric.y + uvs[2].x * barycentric.z;
 		uvInterpolated.y = uvs[0].y *barycentric.x + uvs[1].y * barycentric.y + uvs[2].y * barycentric.z;
 
+		RGBA colour = mesh->getDiffuseColor(uvInterpolated);
 		float lightIntensity = light[0] * barycentric.x + light[1] * barycentric.y + light[2] * barycentric.z;
-
-		if (lightIntensity > 0.8f) {
-			lightIntensity = 0.8f;
-		} else if (lightIntensity > 0.6f) {
-			lightIntensity = 0.6f;
-		} else if (lightIntensity > 0.2f) {
-			lightIntensity = 0.2f;
+		if (lightIntensity > 0.75f) {
+			lightIntensity = 0.75f;
+		}  else if (lightIntensity > 0.5f) {
+			lightIntensity = 0.5f;
+		} else if (lightIntensity > 0.25f) {
+			lightIntensity = 0.25f;
 		} else {
 			lightIntensity = 0.0f;
 		}
-
-		RGBA colour = mesh->getTextureColor(uvInterpolated);
 		colour.applyLightIntensity(std::max(0.0f, lightIntensity));
 		return colour;
 	}
