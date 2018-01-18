@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <chrono>
+
 #define SDL_MAIN_HANDLED
 
 #include "types/Types.h"
@@ -11,13 +12,16 @@
 #include "shaders/FaceIlluminationShader.h"
 #include "shaders/GouraudShader.h"
 #include "shaders/ClampIlluminationShader.h"
+#include "shaders/ZBufferShader.h"
+#include "shaders/PhongShader.h"
 
 int main(int argc, char** argv) {
-
 	// Load mesh and its textures
 	Mesh mesh;
-	mesh.loadObjFromFile("diablo3.obj");
-	mesh.loadDiffuseTexture("diablo3_diffuse.png");
+	mesh.loadObjFromFile("head.obj");
+	mesh.loadDiffuseTexture("head_diffuse.png");
+	mesh.loadNormalMap("head_nm.png");
+	//mesh.loadSpecularMap("diablo3_specular.png");
 
 	// Create the camera
 	Camera camera;
@@ -32,22 +36,21 @@ int main(int argc, char** argv) {
 	rasterizer.createViewportMatrix();
 
 	// Create and set the light position in the rasterizer
-	Vector3f light = Vector3f(0.0f, 0.0f, 1.0f).normalize();
+	Vector3f light = Vector3f(0.0f, 0.0f, 1.0f);
 	rasterizer.setLightPosition(light);
 
 	// load shader
-	std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
+	std::unique_ptr<Shader> shader = std::unique_ptr<PhongShader>(new PhongShader());
 	rasterizer.loadShader(shader);
 
 	// init offset for camera movement
-	float cameraOffset = 0.1;
+	float cameraOffset = 0.1f;
 
 	// timers for FPS counter
 	std::chrono::time_point<std::chrono::high_resolution_clock> current, previous;
 	std::chrono::duration<float, std::milli> elapsed(0);
 	previous = std::chrono::high_resolution_clock::now();
-
-	int frames = 0;
+	int frames = 1;
 
 	SDL_Event event;
 	bool quit = false;
@@ -62,19 +65,31 @@ int main(int argc, char** argv) {
 				switch (event.key.keysym.sym) {
 					case SDLK_F1:
 					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
+						std::unique_ptr<Shader> shader = std::unique_ptr<PhongShader>(new PhongShader());
 						rasterizer.loadShader(shader);
 					}
 					break;
 					case SDLK_F2:
 					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<FaceIlluminationShader>(new FaceIlluminationShader());
+						std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
 						rasterizer.loadShader(shader);
 					}
 					break;
 					case SDLK_F3:
 					{
+						std::unique_ptr<Shader> shader = std::unique_ptr<FaceIlluminationShader>(new FaceIlluminationShader());
+						rasterizer.loadShader(shader);
+					}
+					break;
+					case SDLK_F4:
+					{
 						std::unique_ptr<Shader> shader = std::unique_ptr<ClampIlluminationShader>(new ClampIlluminationShader());
+						rasterizer.loadShader(shader);
+					}
+					break;
+					case SDLK_F5:
+					{
+						std::unique_ptr<Shader> shader = std::unique_ptr<ZBufferShader>(new ZBufferShader());
 						rasterizer.loadShader(shader);
 					}
 					break;
@@ -94,9 +109,9 @@ int main(int argc, char** argv) {
 		camera.eye.x += cameraOffset;
 		if (camera.eye.x >= 10.0f) {
 			camera.eye.x -= cameraOffset;
-			cameraOffset = -0.1f;
+			cameraOffset = -cameraOffset;
 		} else if (camera.eye.x < -10.0f) {
-			cameraOffset = 0.1f;
+			cameraOffset = -cameraOffset;
 		}
 		rasterizer.setCamera(&camera);
 		rasterizer.clearBuffers();

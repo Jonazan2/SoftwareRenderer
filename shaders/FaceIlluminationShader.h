@@ -25,9 +25,7 @@ public:
 
 		// diffuse texture coordinate (one per primitive)
 		const FaceVector &faces = mesh->getFace(faceIndex);
-		Vector3f faceUv = mesh->getDiffuseTextureCoordinate(faces[0].y);
-		uv.x = faceUv.x;
-		uv.y = faceUv.y;
+		uv = mesh->getDiffuseTextureCoordinate(faces[0].y);
 	}
 
 	RGBA fragment(const Vector3f &barycentric) override final {
@@ -42,5 +40,5 @@ public:
 
 private:
 	float faceIlumination;
-	Vector2i uv;
+	Vector3f uv;
 };

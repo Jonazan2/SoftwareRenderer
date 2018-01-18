@@ -4,6 +4,8 @@
 #include "../shaders/FaceIlluminationShader.h"
 #include "../shaders/GouraudShader.h"
 #include "../shaders/ClampIlluminationShader.h"
+#include "../shaders/ZBufferShader.h"
+#include "../shaders/PhongShader.h"
 
 Rasterizer::Rasterizer(Mesh *mesh, Camera *camera) : mesh(mesh), camera(camera) {
 	frameBuffer = new RGBA[SCREEN_WIDTH * SCREEN_HEIGHT];
@@ -93,6 +95,28 @@ void Rasterizer::setUniformsInShader() {
 		}
 		break;
 		
+		case ShaderType::ZBUFFER:
+		{
+			ZBufferShader * tmp = dynamic_cast<ZBufferShader*>(shader.get());
+			tmp->mesh = mesh;
+			tmp->zBuffer = zBuffer;
+			tmp->depth = 320;
+			tmp->screenWidth = SCREEN_WIDTH;
+			tmp->transform = transform;
+		}
+		break;
+
+		case ShaderType::PHONG:
+		{
+			PhongShader * tmp = dynamic_cast<PhongShader*>(shader.get());
+			tmp->mesh = mesh;
+			tmp->transform = transform;
+			tmp->MWP = projection * view * mesh->getModelMatrix();
+			tmp->lightDirection = MatrixVectorf::createFromHomogeneousMatrix(tmp->MWP * Matrix4f::fromVector(light));
+			tmp->MWPInversedTransposed = (projection * view * mesh->getModelMatrix()).invertTranspose();
+		}
+		break;
+
 		default:
 			assert("uniforms not set");
 		break;
@@ -209,6 +233,7 @@ void Rasterizer::drawTriangle(Vector3f vertices[3]) {
 			Vector3f barycentric = calculateBarycentricCoordinates(point, vertices[0], vertices[1], vertices[2]);
 			if (isPointInsideTriangle(barycentric) && passZBufferTest(point, vertices[0], vertices[1], vertices[2], barycentric)) {
 				// Call fragment shader
+				shader->FRAGMENT_COORDINATES = point;
 				RGBA colour = shader->fragment(barycentric);
 				plotPixel(x, y, colour);
 			}

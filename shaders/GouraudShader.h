@@ -26,7 +26,7 @@ public:
 	}
 
 	RGBA fragment(const Vector3f &barycentric) override final {
-		Vector2i uvInterpolated;
+		Vector3f uvInterpolated;
 		uvInterpolated.x = uvs[0].x *barycentric.x + uvs[1].x * barycentric.y + uvs[2].x * barycentric.z;
 		uvInterpolated.y = uvs[0].y *barycentric.x + uvs[1].y * barycentric.y + uvs[2].y * barycentric.z;
 

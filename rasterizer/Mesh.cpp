@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -20,8 +20,13 @@ Mesh::~Mesh() {
 	if (diffuse.data != nullptr) {
 		stbi_image_free(diffuse.data);
 	}
+	if (specularMap.data != nullptr) {
+		stbi_image_free(diffuse.data);
+	}
+	if (normalMap.data != nullptr) {
+		stbi_image_free(diffuse.data);
+	}
 }
-
 
 void Mesh::loadObjFromFile(const std::string& path) {
 	std::ifstream file(path, std::ifstream::in);
@@ -86,7 +91,11 @@ void Mesh::loadDiffuseTexture(const std::string& path) {
 }
 
 void Mesh::loadNormalMap(const std::string& path) {
-	loadTexture(normalMap, path, STBI_rgb);
+	loadTexture(normalMap, path, STBI_rgb_alpha);
+}
+
+void Mesh::loadSpecularMap(const std::string& path) {
+	loadTexture(specularMap, path, STBI_rgb);
 }
 
 void Mesh::loadTexture(Texture &texture, const std::string &filename, int format) {
@@ -99,15 +108,33 @@ void Mesh::loadTexture(Texture &texture, const std::string &filename, int format
 	texture = { width, height, textureData };
 }
 
-RGBA Mesh::getDiffuseColor(const Vector2i &textureCoordinate) const {
+RGBA Mesh::getDiffuseColor(const Vector3f &textureCoordinate) const {
 	assert(diffuse.data != nullptr);
-	int index = ((textureCoordinate.x * 4) + (textureCoordinate.y * diffuse.height * 4));
+	Vector2i uv( textureCoordinate.x * diffuse.width , textureCoordinate.y * diffuse.height );
+	int index = ((uv.x * 4) + (uv.y * diffuse.height * 4));
 	RGBA colour;
 	colour.red = diffuse.data[index];
 	colour.green = diffuse.data[index + 1];
 	colour.blue = diffuse.data[index + 2];
 	colour.alpha = diffuse.data[index + 3];
 	return colour;
+}
+
+Vector3f Mesh::getNormalFromMap(const Vector3f &textureCoordinate) const {
+	assert(normalMap.data != nullptr);
+	Vector2i uv(textureCoordinate.x * normalMap.width, textureCoordinate.y * normalMap.height);
+	int index = ((uv.x * 4) + (uv.y * normalMap.height * 4));
+	Vector3f normal;
+	for (int i = 0; i < 3; i++, index++) {
+		normal[i] = (((float)normalMap.data[index] / 255.f) * 2.0f) - 1.f;
+	}
+	return normal;
+}
+
+float Mesh::getSpecularIntensity(const Vector2i &textureCoordinate) const {
+	assert(specularMap.data != nullptr);
+	int index = ((textureCoordinate.x * 3) + (textureCoordinate.y * specularMap.height * 3));
+	return specularMap.data[index] / 1.0f;
 }
 
 int Mesh::getVerticesCount() const {
@@ -133,8 +160,6 @@ const std::vector<FaceVector>& Mesh::getFaces() const {
 Vector3f Mesh::getDiffuseTextureCoordinate(size_t index) const {
 	assert(index < textureCoordinates.size());
 	Vector3f uv = textureCoordinates[index];
-	uv.x = uv.x * diffuse.width;
-	uv.y = uv.y * diffuse.height;
 	return uv;
 }
 
@@ -160,7 +185,6 @@ void Mesh::translate(Vector3f translation) {
 		{ 0,0,1,translation.z },
 		{ 0,0,0,1 }
 	};
-
 	model = model * translationMatrix;
 }
 
@@ -171,7 +195,6 @@ void Mesh::scale(float x, float y, float z) {
 		{ 0,0,z,0 },
 		{ 0,0,0,1 }
 	};
-
 	model = model * scaleMatrix;
 }
 

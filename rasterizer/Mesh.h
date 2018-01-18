@@ -17,6 +17,7 @@ public:
 	void loadObjFromFile(const std::string& path);
 	void loadDiffuseTexture(const std::string& path);
 	void loadNormalMap(const std::string& path);
+	void loadSpecularMap(const std::string& path);
 
 	int getVerticesCount() const;
 	int getTextureCoordinatesCount() const;
@@ -29,7 +30,9 @@ public:
 	const Vector3f& getNormal(size_t index) const;
 	const FaceVector& getFace(size_t index) const;
 
-	RGBA Mesh::getDiffuseColor(const Vector2i &textureCoordinate) const;
+	RGBA getDiffuseColor(const Vector3f &textureCoordinate) const;
+	Vector3f getNormalFromMap(const Vector3f &textureCoordinate) const;
+	float getSpecularIntensity(const Vector2i &textureCoordinate) const;
 
 	const Matrix4f& getModelMatrix() const { return model; }
 	void translate(Vector3f translation);
@@ -49,6 +52,7 @@ private:
 	Matrix4f model;
 	Texture diffuse;
 	Texture normalMap;
+	Texture specularMap;
 
 	std::vector<Vector3f> vertices;
 	std::vector<Vector3f> textureCoordinates;
