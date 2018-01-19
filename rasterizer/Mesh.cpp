@@ -21,10 +21,10 @@ Mesh::~Mesh() {
 		stbi_image_free(diffuse.data);
 	}
 	if (specularMap.data != nullptr) {
-		stbi_image_free(diffuse.data);
+		stbi_image_free(specularMap.data);
 	}
 	if (normalMap.data != nullptr) {
-		stbi_image_free(diffuse.data);
+		stbi_image_free(normalMap.data);
 	}
 }
 
