@@ -131,6 +131,17 @@ Vector3f Mesh::getNormalFromMap(const Vector3f &textureCoordinate) const {
 	return normal;
 }
 
+RGBA Mesh::getNormalAsColour(const Vector3f &textureCoordinate) const {
+	assert(normalMap.data != nullptr);
+	Vector2i uv(textureCoordinate.x * normalMap.width, textureCoordinate.y * normalMap.height);
+	int index = ((uv.x * normalMap.pitch) + (uv.y * normalMap.height * normalMap.pitch));
+	RGBA colour;
+	colour.red = normalMap.data[index];
+	colour.green = normalMap.data[index + 1];
+	colour.blue = normalMap.data[index + 2];
+	return colour;
+}
+
 float Mesh::getSpecularIntensity(const Vector3f &textureCoordinate) const {
 	assert(specularMap.data != nullptr);
 	Vector2i uv(textureCoordinate.x * specularMap.width, textureCoordinate.y * specularMap.height);

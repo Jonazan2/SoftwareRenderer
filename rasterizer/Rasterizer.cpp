@@ -6,6 +6,7 @@
 #include "../shaders/ClampIlluminationShader.h"
 #include "../shaders/ZBufferShader.h"
 #include "../shaders/PhongShader.h"
+#include "../shaders/TangentNormalShader.h"
 
 Rasterizer::Rasterizer(Mesh *mesh, Camera *camera) : mesh(mesh), camera(camera) {
 	frameBuffer = new RGBA[SCREEN_WIDTH * SCREEN_HEIGHT];
@@ -109,6 +110,17 @@ void Rasterizer::setUniformsInShader() {
 		case ShaderType::PHONG:
 		{
 			PhongShader * tmp = dynamic_cast<PhongShader*>(shader.get());
+			tmp->mesh = mesh;
+			tmp->transform = transform;
+			tmp->MWP = projection * view * mesh->getModelMatrix();
+			tmp->lightDirection = MatrixVectorf::createFromHomogeneousMatrix(tmp->MWP * Matrix4f::fromVector(light)).normalize();
+			tmp->MWPInversedTransposed = (projection * view * mesh->getModelMatrix()).invertTranspose();
+		}
+		break;
+
+		case ShaderType::TANGENT_NORMAL:
+		{
+			TangentNormalShader * tmp = dynamic_cast<TangentNormalShader*>(shader.get());
 			tmp->mesh = mesh;
 			tmp->transform = transform;
 			tmp->MWP = projection * view * mesh->getModelMatrix();

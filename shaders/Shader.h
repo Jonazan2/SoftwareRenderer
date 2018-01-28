@@ -8,7 +8,8 @@ enum class ShaderType : int {
 	GOURAUD,
 	CLAMP_ILUMINATION,
 	ZBUFFER,
-	PHONG
+	PHONG,
+	TANGENT_NORMAL
 };
 
 class Shader {

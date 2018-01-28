@@ -32,6 +32,7 @@ public:
 
 	RGBA getDiffuseColor(const Vector3f &textureCoordinate) const;
 	Vector3f getNormalFromMap(const Vector3f &textureCoordinate) const;
+	RGBA getNormalAsColour(const Vector3f &textureCoordinate) const;
 	float getSpecularIntensity(const Vector3f &textureCoordinate) const;
 
 	const Matrix4f& getModelMatrix() const { return model; }

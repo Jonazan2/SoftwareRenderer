@@ -14,6 +14,9 @@
 #include "shaders/ClampIlluminationShader.h"
 #include "shaders/ZBufferShader.h"
 #include "shaders/PhongShader.h"
+#include "shaders/TangentNormalShader.h"
+
+void handleInput(SDL_Keycode code, Rasterizer *rasterizer);
 
 int main(int argc, char** argv) {
 	// Load mesh and its textures
@@ -63,41 +66,12 @@ int main(int argc, char** argv) {
 
 			if (event.type == SDL_KEYDOWN) {
 				switch (event.key.keysym.sym) {
-					case SDLK_F1:
-					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<PhongShader>(new PhongShader());
-						rasterizer.loadShader(shader);
-					}
-					break;
-					case SDLK_F2:
-					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
-						rasterizer.loadShader(shader);
-					}
-					break;
-					case SDLK_F3:
-					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<FaceIlluminationShader>(new FaceIlluminationShader());
-						rasterizer.loadShader(shader);
-					}
-					break;
-					case SDLK_F4:
-					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<ClampIlluminationShader>(new ClampIlluminationShader());
-						rasterizer.loadShader(shader);
-					}
-					break;
-					case SDLK_F5:
-					{
-						std::unique_ptr<Shader> shader = std::unique_ptr<ZBufferShader>(new ZBufferShader());
-						rasterizer.loadShader(shader);
-					}
+					case SDLK_ESCAPE:
+						quit = true;
 					break;
 
-					case SDLK_ESCAPE:
-					{
-						quit = true;
-					}
+					default:
+						handleInput(event.key.keysym.sym, &rasterizer);
 					break;
 				}
 			}
@@ -130,4 +104,45 @@ int main(int argc, char** argv) {
 	}
 
 	return 0;
+}
+
+void handleInput(SDL_Keycode code, Rasterizer *rasterizer) {
+	switch (code) {
+		case SDLK_F1:
+		{
+			std::unique_ptr<Shader> shader = std::unique_ptr<PhongShader>(new PhongShader());
+			rasterizer->loadShader(shader);
+		}
+		break;
+		case SDLK_F2:
+		{
+			std::unique_ptr<Shader> shader = std::unique_ptr<GouraudShader>(new GouraudShader());
+			rasterizer->loadShader(shader);
+		}
+		break;
+		case SDLK_F3:
+		{
+			std::unique_ptr<Shader> shader = std::unique_ptr<FaceIlluminationShader>(new FaceIlluminationShader());
+			rasterizer->loadShader(shader);
+		}
+		break;
+		case SDLK_F4:
+		{
+			std::unique_ptr<Shader> shader = std::unique_ptr<ClampIlluminationShader>(new ClampIlluminationShader());
+			rasterizer->loadShader(shader);
+		}
+		break;
+		case SDLK_F5:
+		{
+			std::unique_ptr<Shader> shader = std::unique_ptr<TangentNormalShader>(new TangentNormalShader());
+			rasterizer->loadShader(shader);
+		}
+		break;
+		case SDLK_F6:
+		{
+			std::unique_ptr<Shader> shader = std::unique_ptr<ZBufferShader>(new ZBufferShader());
+			rasterizer->loadShader(shader);
+		}
+		break;
+	}
 }
