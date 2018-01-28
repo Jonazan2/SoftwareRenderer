@@ -95,7 +95,7 @@ void Mesh::loadNormalMap(const std::string& path) {
 }
 
 void Mesh::loadSpecularMap(const std::string& path) {
-	loadTexture(specularMap, path, STBI_rgb);
+	loadTexture(specularMap, path, STBI_rgb_alpha);
 }
 
 void Mesh::loadTexture(Texture &texture, const std::string &filename, int format) {
@@ -103,15 +103,15 @@ void Mesh::loadTexture(Texture &texture, const std::string &filename, int format
 
 	int width, height, orig_format;
 	byte *textureData = stbi_load(filename.c_str(), &width, &height, &orig_format, format);
-	assert(textureData != nullptr && format == orig_format);
+	assert(textureData != nullptr);
 
-	texture = { width, height, textureData };
+	texture = { width, height, orig_format, textureData };
 }
 
 RGBA Mesh::getDiffuseColor(const Vector3f &textureCoordinate) const {
 	assert(diffuse.data != nullptr);
 	Vector2i uv( textureCoordinate.x * diffuse.width , textureCoordinate.y * diffuse.height );
-	int index = ((uv.x * 4) + (uv.y * diffuse.height * 4));
+	int index = ((uv.x * diffuse.pitch) + (uv.y * diffuse.height * diffuse.pitch));
 	RGBA colour;
 	colour.red = diffuse.data[index];
 	colour.green = diffuse.data[index + 1];
@@ -123,7 +123,7 @@ RGBA Mesh::getDiffuseColor(const Vector3f &textureCoordinate) const {
 Vector3f Mesh::getNormalFromMap(const Vector3f &textureCoordinate) const {
 	assert(normalMap.data != nullptr);
 	Vector2i uv(textureCoordinate.x * normalMap.width, textureCoordinate.y * normalMap.height);
-	int index = ((uv.x * 4) + (uv.y * normalMap.height * 4));
+	int index = ((uv.x * normalMap.pitch) + (uv.y * normalMap.height * normalMap.pitch));
 	Vector3f normal;
 	for (int i = 0; i < 3; i++, index++) {
 		normal[i] = (((float)normalMap.data[index] / 255.f) * 2.0f) - 1.f;
@@ -131,9 +131,10 @@ Vector3f Mesh::getNormalFromMap(const Vector3f &textureCoordinate) const {
 	return normal;
 }
 
-float Mesh::getSpecularIntensity(const Vector2i &textureCoordinate) const {
+float Mesh::getSpecularIntensity(const Vector3f &textureCoordinate) const {
 	assert(specularMap.data != nullptr);
-	int index = ((textureCoordinate.x * 3) + (textureCoordinate.y * specularMap.height * 3));
+	Vector2i uv(textureCoordinate.x * specularMap.width, textureCoordinate.y * specularMap.height);
+	int index = ((textureCoordinate.x * specularMap.pitch) + (textureCoordinate.y * specularMap.height * specularMap.pitch));
 	return specularMap.data[index] / 1.0f;
 }
 

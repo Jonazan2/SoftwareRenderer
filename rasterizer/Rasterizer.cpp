@@ -112,7 +112,7 @@ void Rasterizer::setUniformsInShader() {
 			tmp->mesh = mesh;
 			tmp->transform = transform;
 			tmp->MWP = projection * view * mesh->getModelMatrix();
-			tmp->lightDirection = MatrixVectorf::createFromHomogeneousMatrix(tmp->MWP * Matrix4f::fromVector(light));
+			tmp->lightDirection = MatrixVectorf::createFromHomogeneousMatrix(tmp->MWP * Matrix4f::fromVector(light)).normalize();
 			tmp->MWPInversedTransposed = (projection * view * mesh->getModelMatrix()).invertTranspose();
 		}
 		break;

@@ -32,7 +32,7 @@ public:
 
 	RGBA getDiffuseColor(const Vector3f &textureCoordinate) const;
 	Vector3f getNormalFromMap(const Vector3f &textureCoordinate) const;
-	float getSpecularIntensity(const Vector2i &textureCoordinate) const;
+	float getSpecularIntensity(const Vector3f &textureCoordinate) const;
 
 	const Matrix4f& getModelMatrix() const { return model; }
 	void translate(Vector3f translation);
@@ -46,6 +46,7 @@ private:
 	struct Texture {
 		int width;
 		int height;
+		int pitch;
 		byte *data;
 	};
 	

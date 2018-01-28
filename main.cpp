@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
 	mesh.loadObjFromFile("head.obj");
 	mesh.loadDiffuseTexture("head_diffuse.png");
 	mesh.loadNormalMap("head_nm.png");
-	//mesh.loadSpecularMap("diablo3_specular.png");
+	mesh.loadSpecularMap("head_specular.png");
 
 	// Create the camera
 	Camera camera;

@@ -68,9 +68,13 @@ public:
 		Vector3f normal(n[0][0], n[1][0], n[2][0]);
 		normal.normalize();
 
-		RGBA colour = mesh->getDiffuseColor(uvInterpolated);
 		float diffuseLight = normal.dot(lightDirection);
-		colour.applyLightIntensity(std::max(0.0f, diffuseLight));
+		Vector3f reflectedLight = normal * (2.0f * (normal.dot(lightDirection))) - lightDirection;
+		reflectedLight.normalize();
+		float specular = pow(std::max(reflectedLight.z, 0.0f), mesh->getSpecularIntensity(uvInterpolated));
+
+		RGBA colour = mesh->getDiffuseColor(uvInterpolated);
+		colour.applyLightIntensity(std::max(0.0f, (diffuseLight + 0.08f * specular)));
 		return colour;
 	}
 
