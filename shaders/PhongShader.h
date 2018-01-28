@@ -20,12 +20,12 @@ public:
 		uvs[vertexIndex] = mesh->getDiffuseTextureCoordinate(faces[vertexIndex].y);
 
 		// Transform normals and light
-		normals[vertexIndex] = MatrixVectorf::createFromHomogeneousMatrix(MWPInversedTransposed * Matrix4f::fromVector(mesh->getNormal(faces[vertexIndex].z)));
+		normals[vertexIndex] = MatrixVectorf::vectorFromHomogeneousMatrix(MWPInversedTransposed * Matrix4f::homogeneousMatrixfromVector(mesh->getNormal(faces[vertexIndex].z)));
 
 		// vertex position
 		const Vector3f vertex = mesh->getVertex(faces[vertexIndex].x);
-		ndc[vertexIndex] = MatrixVectorf::createFromHomogeneousMatrix(MWP*Matrix4f::fromVector(vertex));
-		return MatrixVectorf::createFromHomogeneousMatrix(transform*Matrix4f::fromVector(vertex));
+		ndc[vertexIndex] = MatrixVectorf::vectorFromHomogeneousMatrix(MWP*Matrix4f::homogeneousMatrixfromVector(vertex));
+		return MatrixVectorf::vectorFromHomogeneousMatrix(transform*Matrix4f::homogeneousMatrixfromVector(vertex));
 	}
 
 	RGBA fragment(const Vector3f &barycentric) override final {
@@ -49,11 +49,11 @@ public:
 		};
 		Matrix3f AI = A.invert();
 
-		Matrix<float, 3, 1> iM = AI * Matrix3f::createFromVector(Vector3f(uvs[1][0] - uvs[0][0], uvs[2][0] - uvs[0][0], 0));
+		Matrix<float, 3, 1> iM = AI * Matrix3f::matrixFromVector(Vector3f(uvs[1][0] - uvs[0][0], uvs[2][0] - uvs[0][0], 0));
 		Vector3f i(iM[0][0], iM[1][0], iM[2][0]);
 		i.normalize();
 
-		Matrix<float, 3, 1> jM = AI * Matrix3f::createFromVector(Vector3f(uvs[1][1] - uvs[0][1], uvs[2][1] - uvs[0][1], 0));
+		Matrix<float, 3, 1> jM = AI * Matrix3f::matrixFromVector(Vector3f(uvs[1][1] - uvs[0][1], uvs[2][1] - uvs[0][1], 0));
 		Vector3f j(jM[0][0], jM[1][0], jM[2][0]);
 		j.normalize();
 
@@ -64,7 +64,7 @@ public:
 		};
 
 		Vector3f normalMap = mesh->getNormalFromMap(uvInterpolated);
-		Matrix<float, 3, 1> n = B *Matrix4f::createFromVector(normalMap);
+		Matrix<float, 3, 1> n = B *Matrix4f::matrixFromVector(normalMap);
 		Vector3f normal(n[0][0], n[1][0], n[2][0]);
 		normal.normalize();
 

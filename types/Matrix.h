@@ -16,7 +16,7 @@ public:
 		return identityMatrix;
 	}
 
-	static Matrix<T, 4, 1> fromVector(const Vector3f &vector) {
+	static Matrix<T, 4, 1> homogeneousMatrixfromVector(const Vector3f &vector) {
 		Matrix<T, 4, 1> matrix;
 		matrix[0][0] = vector.x;
 		matrix[1][0] = vector.y;
@@ -25,7 +25,7 @@ public:
 		return matrix;
 	}
 
-	static Matrix<T, 3, 1> createFromVector(const Vector3f &vector) {
+	static Matrix<T, 3, 1> matrixFromVector(const Vector3f &vector) {
 		Matrix<T, 3, 1> matrix;
 		matrix[0][0] = vector.x;
 		matrix[1][0] = vector.y;
@@ -33,7 +33,7 @@ public:
 		return matrix;
 	}
 
-	static Vector3f createFromHomogeneousMatrix(const Matrix<float, 4, 1> &m) {
+	static Vector3f vectorFromHomogeneousMatrix(const Matrix<float, 4, 1> &m) {
 		return Vector3f(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
 	}
 

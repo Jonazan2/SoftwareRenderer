@@ -113,7 +113,7 @@ void Rasterizer::setUniformsInShader() {
 			tmp->mesh = mesh;
 			tmp->transform = transform;
 			tmp->MWP = projection * view * mesh->getModelMatrix();
-			tmp->lightDirection = MatrixVectorf::createFromHomogeneousMatrix(tmp->MWP * Matrix4f::fromVector(light)).normalize();
+			tmp->lightDirection = MatrixVectorf::vectorFromHomogeneousMatrix(tmp->MWP * Matrix4f::homogeneousMatrixfromVector(light)).normalize();
 			tmp->MWPInversedTransposed = (projection * view * mesh->getModelMatrix()).invertTranspose();
 		}
 		break;
@@ -123,9 +123,6 @@ void Rasterizer::setUniformsInShader() {
 			TangentNormalShader * tmp = dynamic_cast<TangentNormalShader*>(shader.get());
 			tmp->mesh = mesh;
 			tmp->transform = transform;
-			tmp->MWP = projection * view * mesh->getModelMatrix();
-			tmp->lightDirection = MatrixVectorf::createFromHomogeneousMatrix(tmp->MWP * Matrix4f::fromVector(light)).normalize();
-			tmp->MWPInversedTransposed = (projection * view * mesh->getModelMatrix()).invertTranspose();
 		}
 		break;
 

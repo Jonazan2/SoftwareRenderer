@@ -14,7 +14,7 @@ public:
 		// vertex position
 		const FaceVector &faces = mesh->getFace(faceIndex);
 		const Vector3f vertex = mesh->getVertex(faces[vertexIndex].x);
-		return MatrixVectorf::createFromHomogeneousMatrix(transform*Matrix4f::fromVector(vertex));
+		return MatrixVectorf::vectorFromHomogeneousMatrix(transform*Matrix4f::homogeneousMatrixfromVector(vertex));
 	}
 
 	void geometry(int faceIndex, Vector3f vertices[3]) override final {

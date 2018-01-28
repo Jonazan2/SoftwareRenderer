@@ -8,11 +8,8 @@
 class TangentNormalShader : public Shader {
 public:
 	// uniforms for the entire shader
-	Vector3f lightDirection;
-	Mesh *mesh;
 
-	Matrix4f MWP;
-	Matrix4f MWPInversedTransposed;
+	Mesh *mesh;
 	Matrix4f transform;
 
 	Vector3f vertex(int faceIndex, int vertexIndex) override final {
@@ -21,13 +18,9 @@ public:
 		// diffuse texture coordinates
 		uvs[vertexIndex] = mesh->getDiffuseTextureCoordinate(faces[vertexIndex].y);
 
-		// Transform normals and light
-		normals[vertexIndex] = MatrixVectorf::createFromHomogeneousMatrix(MWPInversedTransposed * Matrix4f::fromVector(mesh->getNormal(faces[vertexIndex].z)));
-
 		// vertex position
 		const Vector3f vertex = mesh->getVertex(faces[vertexIndex].x);
-		ndc[vertexIndex] = MatrixVectorf::createFromHomogeneousMatrix(MWP*Matrix4f::fromVector(vertex));
-		return MatrixVectorf::createFromHomogeneousMatrix(transform*Matrix4f::fromVector(vertex));
+		return MatrixVectorf::vectorFromHomogeneousMatrix(transform*Matrix4f::homogeneousMatrixfromVector(vertex));
 	}
 
 	RGBA fragment(const Vector3f &barycentric) override final {
@@ -42,6 +35,4 @@ public:
 
 private:
 	Vector3f uvs[3];
-	Vector3f ndc[3];
-	Vector3f normals[3];
 };

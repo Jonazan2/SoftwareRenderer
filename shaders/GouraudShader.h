@@ -22,7 +22,7 @@ public:
 
 		// vertex position
 		const Vector3f vertex = mesh->getVertex(faces[vertexIndex].x);
-		return MatrixVectorf::createFromHomogeneousMatrix(transform*Matrix4f::fromVector(vertex));
+		return MatrixVectorf::vectorFromHomogeneousMatrix(transform*Matrix4f::homogeneousMatrixfromVector(vertex));
 	}
 
 	RGBA fragment(const Vector3f &barycentric) override final {
