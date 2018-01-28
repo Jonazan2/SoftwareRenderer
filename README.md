@@ -2,7 +2,7 @@
 Software renderer developed from scratch in C++ 11 including a handmade obj loader.
 
 <p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/techniques.gif" height="384" width="512" alt="Shotgun"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/techniques.gif" height="768" width="1024" alt="Shotgun"/>
 </p>
 
 ## Features
