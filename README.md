@@ -1,36 +1,31 @@
 # SoftwareRenderer
-Software renderer developed in C++ from scratch. The following images show the result after implementing several features.
+Software renderer developed from scratch in C++ 11 including a handmade obj loader.
 
-# Wireframe
 <p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_shotgun.jpeg" alt="Shotgun"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/techniques.gif" height="384" width="512" alt="Shotgun"/>
 </p>
 
-# Face normal ilumination
+## Features
+The software renderer is capable to render OBJ files with support for diffuse, normal and specular textures. It additionally implements a shader system that allows to change shaders in runtime. By using this system, I have created six main shaders to show different techniques: Phong shading, Gouraud Shading, Normal Face illumination, Clamp illumination, Tangent Space Normals as colour and a representation of the zBuffer.
+
 <p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_face_normals.png" alt="FaceNormals"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/zbuffer_diablo.png" height="310" width="432" alt="camera"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/gouraud_diablo.png" height="310" width="432" alt="camera"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/face_diablo.png" height="310" width="432" alt="camera"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/clamp_diablo.png" height="310" width="432" alt="camera"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/tangent_diablo.png" height="310" width="432"" alt="camera"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/phong_diablo.png" height="310" width="432" alt="camera"/>
 </p>
 
-# Z Buffer
+The renderer supports the possibility to scale, transform and rotate the objects in screen. It also allows to move the camera or the light position.
+
 <p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_zframebuffer.png" alt="zBuffer"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/face_camera.png" height="310" width="432" alt="camera"/>
+  <img src="http://jonathanmcontreras.com/images/portfolio/renderer/face_camera2.png" height="310" width="432" alt="camera"/>
 </p>
 
-# UV mapping
-<p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_diablo_diffuse.png" alt="zBuffer"/>
-</p>
+## Posible improvements
+Since the rendering of complex object in software is a heavy task, the vector operations could be improved by implementing SIMD for the dot product and vector normalization.
 
-# Gouraud interpolation
-<p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_diablo_gouraud.png" alt="gouraud"/>
-</p>
-
-# Matrix transformations
-<p align="center">
-  <img src="http://jonathanmcontreras.com/images/portfolio/software_renderer_face_camera3.png" alt="gouraud"/>
-</p>
-
-
-# Documentation
+## Documentation
 I've used two main sources as documentation: https://github.com/ssloy/tinyrenderer and www.scratchapixel.com. Both of them offer great introduction to 3D rendering.
