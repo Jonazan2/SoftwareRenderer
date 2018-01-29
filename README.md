@@ -24,8 +24,10 @@ The renderer supports the possibility to scale, transform and rotate the objects
   <img src="http://jonathanmcontreras.com/images/portfolio/renderer/face_camera2.png" height="310" width="432" alt="camera"/>
 </p>
 
-## Posible improvements
-Since the rendering of complex 3D object in software is an heavy task, the vector operations could be improved by implementing SIMD for the dot product and vector normalization.
+## Possible improvements
+* Since the rendering of complex 3D object in software is an heavy task, the vector operations could be improved by implementing SIMD for the dot product and vector normalization.
+* Implement a line sweeping algorithm to replace the bounding box approach. This approach was took in order to increase the clarity of the code but it's of course more expensive.
+* Implementation of multithreading for the shader system.
 
 ## Documentation
 The best two main sources to learn about rasterization: https://github.com/ssloy/tinyrenderer and www.scratchapixel.com. Both of them offer great introduction to 3D rendering.
